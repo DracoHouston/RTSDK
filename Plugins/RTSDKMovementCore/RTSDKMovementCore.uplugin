@@ -1,0 +1,42 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "RTSDKMovementCore",
+	"Description": "Real Time Strategy Dev Kit - Movement Core",
+	"Category": "Other",
+	"CreatedBy": "Jason 'Draco' Houston",
+	"CreatedByURL": "draco@dracohouston.net",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": true,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "RTSDKMovementCore",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "MassEntity",
+			"Enabled": true
+		},
+		{
+			"Name": "MassGameplay",
+			"Enabled": true
+		},
+		{
+			"Name": "DeterministicMath",
+			"Enabled": true
+		},
+		{
+			"Name": "RTSDK",
+			"Enabled": true
+		}
+	]
+}

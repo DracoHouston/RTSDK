@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="FFixed64">
+    <DisplayString>
+      {(double)Value/1048576.0}
+      </DisplayString>
+  </Type>
+  <Type Name="FFixed32">
+    <DisplayString>
+      {(double)Value/65536.0}
+    </DisplayString>
+  </Type>
+</AutoVisualizer>

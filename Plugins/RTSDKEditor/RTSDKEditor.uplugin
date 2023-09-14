@@ -1,0 +1,29 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "RTSDKEditor",
+	"Description": "Real Time Strategy Dev Kit - Core Editor",
+	"Category": "Other",
+	"CreatedBy": "Jason 'Draco' Houston",
+	"CreatedByURL": "draco@dracohouston.net",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": true,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "RTSDKEditor",
+			"Type": "Editor"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "RTSDK",
+			"Enabled": true
+		}
+	]
+}
