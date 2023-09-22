@@ -9,11 +9,21 @@
 
 class URTSDKFeatureModDefinition;
 class URTSDKGameModDefinition;
+class URTSDKModDefinitionBase;
 class URTSDKFactionModDefinition;
 class URTSDKMapModDefinition;
 class URTSDKMutatorDefinition;
 class URTSDKConfigurableHUDDefinition;
 class URTSDKConfigurableInputMappingDefinition;
+
+namespace RTSDKModTypeNames
+{
+	const FName Feature = FName(TEXT("Feature"));
+	const FName Game = FName(TEXT("Game"));
+	const FName Faction = FName(TEXT("Faction"));
+	const FName Map = FName(TEXT("Map"));
+	const FName Mutator = FName(TEXT("Mutator"));
+}
 
 USTRUCT(BlueprintType)
 struct FRTSDKActiveModsInfo
@@ -42,6 +52,19 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 		TArray<TObjectPtr<URTSDKMutatorDefinition>> ActiveMutators;
+};
+
+USTRUCT(BlueprintType)
+struct RTSDK_API FRTSDKRegisteredModsMap
+{
+	GENERATED_BODY()
+
+public:
+
+	URTSDKModDefinitionBase* GetModByName(FName inModDevName) const;
+
+	UPROPERTY()
+		TMap<FName, URTSDKModDefinitionBase*> ModsByName;
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRTSDKOnActiveModsReady, FRTSDKActiveModsInfo, inActiveModsInfo);
@@ -78,6 +101,12 @@ public:
 	*/
 	UFUNCTION()
 		void BuildMods();
+
+	/**
+	* Generic feature mod registration, caller is responsible for filling out the mod def
+	*/
+	UFUNCTION()
+		void RegisterMod(FName inModTypeName, URTSDKModDefinitionBase* inModDef);
 
 	/**
 	* Generic feature mod registration, caller is responsible for filling out the mod def
@@ -126,6 +155,12 @@ public:
 	*/
 	UFUNCTION()
 		URTSDKFeatureModDefinition* GetFeatureModByName(FName inModDevName) const;
+
+	/**
+	* Gets a feature mod def by its dev name, if it exists. Will return nullptr if it does not.
+	*/
+	UFUNCTION()
+		URTSDKModDefinitionBase* GetMod(FName inModTypeName, FName inModDevName) const;
 
 	/**
 	* Gets a game mod def by its dev name, if it exists. Will return nullptr if it does not.
@@ -223,6 +258,18 @@ public:
 	UFUNCTION()
 		TArray<URTSDKConfigurableInputMappingDefinition*> GetAllValidInputMappings();	
 
+	UFUNCTION()
+		void EnqueueModForActivation(URTSDKModDefinitionBase* inModDef);
+
+	UFUNCTION()
+		void ProgressActivationQueue();
+
+	UFUNCTION()
+		void EnqueueModForDeactivation(URTSDKModDefinitionBase* inModDef);
+
+	UFUNCTION()
+		void ProgressDeactivationQueue();
+
 	UPROPERTY(BlueprintAssignable)
 		FRTSDKOnActiveModsReady OnActiveModsReady;
 
@@ -231,6 +278,15 @@ protected:
 	void OnGameFeaturePluginLoadComplete(const UE::GameFeatures::FResult& Result);
 
 	void OnModsFullyActivated();
+
+	UPROPERTY()
+		TArray<URTSDKModDefinitionBase*> ModActivationQueue;
+
+	UPROPERTY()
+		TArray<URTSDKModDefinitionBase*> ModDeactivationQueue;
+
+	UPROPERTY()
+	TMap<FName, FRTSDKRegisteredModsMap> RegisteredModsByType;
 
 	UPROPERTY()
 		TMap<FName, URTSDKFeatureModDefinition*> FeatureModsByName;

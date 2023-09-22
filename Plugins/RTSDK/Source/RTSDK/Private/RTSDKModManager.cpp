@@ -2,6 +2,7 @@
 
 
 #include "RTSDKModManager.h"
+#include "RTSDKModDefinitionBase.h"
 #include "RTSDKFeatureModDefinition.h"
 #include "RTSDKGameModDefinition.h"
 #include "RTSDKFactionModDefinition.h"
@@ -101,7 +102,7 @@ void URTSDKModManager::BuildMods()
 	}
 }
 
-void URTSDKModManager::RegisterFeatureMod(URTSDKFeatureModDefinition* inModDef)
+void URTSDKModManager::RegisterMod(FName inModTypeName, URTSDKModDefinitionBase* inModDef)
 {
 	if (inModDef == nullptr)
 	{
@@ -111,79 +112,37 @@ void URTSDKModManager::RegisterFeatureMod(URTSDKFeatureModDefinition* inModDef)
 	{
 		return;
 	}
-	if (!inModDef->bIsValid)
+	FRTSDKRegisteredModsMap& mods = RegisteredModsByType.FindOrAdd(inModTypeName);
+	if (mods.ModsByName.Contains(inModDef->DevName))
 	{
 		return;
 	}
-	FeatureModsByName.Add(inModDef->DevName, inModDef);
+	mods.ModsByName.Add(inModDef->DevName, inModDef);
+}
+
+void URTSDKModManager::RegisterFeatureMod(URTSDKFeatureModDefinition* inModDef)
+{
+	RegisterMod(RTSDKModTypeNames::Feature, inModDef);
 }
 
 void URTSDKModManager::RegisterGameMod(URTSDKGameModDefinition* inModDef)
 {
-	if (inModDef == nullptr)
-	{
-		return;
-	}
-	if (inModDef->ModDevName.IsNone())
-	{
-		return;
-	}
-	if (!inModDef->bIsValid)
-	{
-		return;
-	}
-	GameModsByName.Add(inModDef->ModDevName, inModDef);
+	RegisterMod(RTSDKModTypeNames::Game, inModDef);
 }
 
 void URTSDKModManager::RegisterFactionMod(URTSDKFactionModDefinition* inModDef)
 {
-	if (inModDef == nullptr)
-	{
-		return;
-	}
-	if (inModDef->ModDevName.IsNone())
-	{
-		return;
-	}
-	if (!inModDef->bIsValid)
-	{
-		return;
-	}
-	FactionModsByName.Add(inModDef->ModDevName, inModDef);
+	RegisterMod(RTSDKModTypeNames::Faction, inModDef);
 }
 
 void URTSDKModManager::RegisterMapMod(URTSDKMapModDefinition* inModDef)
 {
-	if (inModDef == nullptr)
-	{
-		return;
-	}
-	if (inModDef->ModDevName.IsNone())
-	{
-		return;
-	}
-	if (!inModDef->bIsValid)
-	{
-		return;
-	}
-	MapModsByName.Add(inModDef->ModDevName, inModDef);
+	RegisterMod(RTSDKModTypeNames::Map, inModDef);
 }
 
 void URTSDKModManager::RegisterMutator(URTSDKMutatorDefinition* inModDef)
 {
-	if (inModDef == nullptr)
-	{
-		return;
-	}
-	if (inModDef->ModDevName.IsNone())
-	{
-		return;
-	}
-	if (!inModDef->bIsValid)
-	{
-		return;
-	}
-	MutatorsByName.Add(inModDef->ModDevName, inModDef);
+	RegisterMod(RTSDKModTypeNames::Mutator, inModDef);
 }
 
 void URTSDKModManager::RegisterConfigurableHUD(URTSDKConfigurableHUDDefinition* inHUDDef)
@@ -214,47 +173,36 @@ void URTSDKModManager::RegisterConfigurableInputMapping(URTSDKConfigurableInputM
 
 URTSDKFeatureModDefinition* URTSDKModManager::GetFeatureModByName(FName inModDevName) const
 {
-	if (FeatureModsByName.Contains(inModDevName))
+	return Cast<URTSDKFeatureModDefinition>(GetMod(RTSDKModTypeNames::Feature, inModDevName));
+}
+
+URTSDKModDefinitionBase* URTSDKModManager::GetMod(FName inModTypeName, FName inModDevName) const
+{
+	if (RegisteredModsByType.Contains(inModTypeName))
 	{
-		return FeatureModsByName[inModDevName];
+		return RegisteredModsByType[inModTypeName].GetModByName(inModDevName);
 	}
 	return nullptr;
 }
 
 URTSDKGameModDefinition* URTSDKModManager::GetGameModByName(FName inModDevName) const
 {
-	if (GameModsByName.Contains(inModDevName))
-	{
-		return GameModsByName[inModDevName];
-	}
-	return nullptr;
+	return Cast<URTSDKGameModDefinition>(GetMod(RTSDKModTypeNames::Game, inModDevName));
 }
 
 URTSDKFactionModDefinition* URTSDKModManager::GetFactionModByName(FName inModDevName) const
 {
-	if (FactionModsByName.Contains(inModDevName))
-	{
-		return FactionModsByName[inModDevName];
-	}
-	return nullptr;
+	return Cast<URTSDKFactionModDefinition>(GetMod(RTSDKModTypeNames::Faction, inModDevName));
 }
 
 URTSDKMapModDefinition* URTSDKModManager::GetMapModByName(FName inModDevName) const
 {
-	if (MapModsByName.Contains(inModDevName))
-	{
-		return MapModsByName[inModDevName];
-	}
-	return nullptr;
+	return Cast<URTSDKMapModDefinition>(GetMod(RTSDKModTypeNames::Map, inModDevName));
 }
 
 URTSDKMutatorDefinition* URTSDKModManager::GetMutatorByName(FName inModDevName) const
 {
-	if (MutatorsByName.Contains(inModDevName))
-	{
-		return MutatorsByName[inModDevName];
-	}
-	return nullptr;
+	return Cast<URTSDKMutatorDefinition>(GetMod(RTSDKModTypeNames::Mutator, inModDevName));
 }
 
 URTSDKConfigurableHUDDefinition* URTSDKModManager::GetConfigurableHUDByName(FName inHUDDevName) const
@@ -278,39 +226,39 @@ URTSDKConfigurableInputMappingDefinition* URTSDKModManager::GetConfigurableInput
 TArray<URTSDKFactionModDefinition*> URTSDKModManager::GetFactionModsByGameMod(URTSDKGameModDefinition* inGameMod) const
 {
 	TArray<URTSDKFactionModDefinition*> factions;
-	for (auto It = FactionModsByName.CreateConstIterator(); It; ++It)
-	{
-		if ((It->Value->bIsValid) && (!It->Value->bIsAbstractMod) && (It->Value->AssociatedGameMod == inGameMod))
-		{
-			factions.Add(It->Value);
-		}
-	}
+	//for (auto It = FactionModsByName.CreateConstIterator(); It; ++It)
+	//{
+	//	if ((It->Value->bIsValid) && (!It->Value->bIsAbstractMod) && (It->Value->AssociatedGameMod == inGameMod))
+	//	{
+	//		factions.Add(It->Value);
+	//	}
+	//}
 	return factions;
 }
 
 TArray<URTSDKMapModDefinition*> URTSDKModManager::GetMapModsByGameMod(URTSDKGameModDefinition* inGameMod) const
 {
 	TArray<URTSDKMapModDefinition*> maps;
-	for (auto It = MapModsByName.CreateConstIterator(); It; ++It)
-	{
-		if ((It->Value->bIsValid) && (!It->Value->bIsAbstractMod) && (It->Value->AssociatedGameMod == inGameMod))
-		{
-			maps.Add(It->Value);
-		}
-	}
+	//for (auto It = MapModsByName.CreateConstIterator(); It; ++It)
+	//{
+	//	if ((It->Value->bIsValid) && (!It->Value->bIsAbstractMod) && (It->Value->AssociatedGameMod == inGameMod))
+	//	{
+	//		maps.Add(It->Value);
+	//	}
+	//}
 	return maps;
 }
 
 TArray<URTSDKMutatorDefinition*> URTSDKModManager::GetMutatorsByGameMod(URTSDKGameModDefinition* inGameMod) const
 {
 	TArray<URTSDKMutatorDefinition*> mutators;
-	for (auto It = MutatorsByName.CreateConstIterator(); It; ++It)
+	/*for (auto It = MutatorsByName.CreateConstIterator(); It; ++It)
 	{
 		if ((It->Value->bIsValid) && ((It->Value->AssociatedGameMod == inGameMod) || (It->Value->AssociatedGameModName.IsNone())))
 		{
 			mutators.Add(It->Value);
 		}
-	}
+	}*/
 	return mutators;
 }
 
@@ -423,33 +371,33 @@ FRTSDKActiveModsInfo URTSDKModManager::ActivateMods(URTSDKGameModDefinition* inG
 {
 	if (inGameMod == nullptr)
 	{
-		return;//bad game mod input
+		return FRTSDKActiveModsInfo();//bad game mod input
 	}
 	if (!inGameMod->bIsValid)
 	{
-		return;//bad game mod, invalid
+		return FRTSDKActiveModsInfo();//bad game mod, invalid
 	}
 	if (inMapMod == nullptr)
 	{
-		return;//bad map mod input
+		return FRTSDKActiveModsInfo();//bad map mod input
 	}
 	if (!inMapMod->bIsValid)
 	{
-		return;//bad game mod, invalid
+		return FRTSDKActiveModsInfo();//bad game mod, invalid
 	}
 	if (inFactionMods.Num() == 0)
 	{
-		return;//no faction mods, even a game with 1 faction needs a faction defined!
+		return FRTSDKActiveModsInfo();//no faction mods, even a game with 1 faction needs a faction defined!
 	}
 	for (int32 i = 0; i < inFactionMods.Num(); i++)
 	{
 		if (inFactionMods[i] == nullptr)
 		{
-			return;//bad faction mod input
+			return FRTSDKActiveModsInfo();//bad faction mod input
 		}
 		if (!inFactionMods[i]->bIsValid)
 		{
-			return;//bad faction mod, invalid
+			return FRTSDKActiveModsInfo();//bad faction mod, invalid
 		}
 	}
 
@@ -457,11 +405,11 @@ FRTSDKActiveModsInfo URTSDKModManager::ActivateMods(URTSDKGameModDefinition* inG
 	{
 		if (inMutators[i] == nullptr)
 		{
-			return;//bad mutator mod input
+			return FRTSDKActiveModsInfo();//bad mutator mod input
 		}
 		if (!inMutators[i]->bIsValid)
 		{
-			return;//bad mutator mod, invalid
+			return FRTSDKActiveModsInfo();//bad mutator mod, invalid
 		}
 	}
 
@@ -470,7 +418,7 @@ FRTSDKActiveModsInfo URTSDKModManager::ActivateMods(URTSDKGameModDefinition* inG
 	//the mods must call activate on each of their feature dependencies then themselves, individually
 	//we need to get the total number of feature plugins being activated to track when they all finish via callback
 	FRTSDKActiveModsInfo retval;
-	retval.ActiveGameMod = inGameMod;
+	/*retval.ActiveGameMod = inGameMod;
 	retval.ActiveFactionMods = inFactionMods;
 	retval.ActiveMapMod = inMapMod;
 	retval.ActiveMutators = inMutators;
@@ -494,7 +442,7 @@ FRTSDKActiveModsInfo URTSDKModManager::ActivateMods(URTSDKGameModDefinition* inG
 	for (int32 i = 0; i < inMutators.Num(); i++)
 	{
 		retval.GameFeatureURLs += inMutators[i]->LoadMod();
-	}
+	}*/
 
 	/*UGameFeaturesSubsystem& gamefeatures = UGameFeaturesSubsystem::Get();
 	PendingGameFeatureCount = retval.GameFeatureURLs.Num();
@@ -509,7 +457,7 @@ FRTSDKActiveModsInfo URTSDKModManager::ActivateMods(URTSDKGameModDefinition* inG
 
 FRTSDKActiveModsInfo URTSDKModManager::ActivateModsByName(FName inGameMod, TArray<FName> inFactionMods, FName inMapMod, TArray<FName> inMutators)
 {
-	URTSDKGameModDefinition* gamemod = nullptr;
+	/*URTSDKGameModDefinition* gamemod = nullptr;
 	if (GameModsByName.Contains(inGameMod))
 	{
 		gamemod = GameModsByName[inGameMod];
@@ -550,11 +498,11 @@ FRTSDKActiveModsInfo URTSDKModManager::ActivateModsByName(FName inGameMod, TArra
 			mutators.Add(MutatorsByName[inMutators[i]]);
 		}
 		else
-		{
+		{*/
 			return FRTSDKActiveModsInfo();
-		}
+		/*}
 	}
-	return ActivateMods(gamemod, factionmods, mapmod, mutators);
+	return ActivateMods(gamemod, factionmods, mapmod, mutators);*/
 }
 
 TArray<URTSDKGameModDefinition*> URTSDKModManager::GetAllValidGameMods()
@@ -562,7 +510,7 @@ TArray<URTSDKGameModDefinition*> URTSDKModManager::GetAllValidGameMods()
 	TArray<URTSDKGameModDefinition*> retval;
 	for (auto It = GameModsByName.CreateConstIterator(); It; ++It)
 	{
-		if (It->Value->bIsValid)
+		if (It->Value->IsModValid())
 		{
 			retval.Add(It->Value);
 		}
@@ -576,7 +524,7 @@ TArray<FName> URTSDKModManager::GetAllValidGameModNames()
 	TArray<URTSDKGameModDefinition*> mods = GetAllValidGameMods();
 	for (int32 i = 0; i < mods.Num(); i++)
 	{
-		retval.Add(mods[i]->ModDevName);
+		retval.Add(mods[i]->DevName);
 	}
 
 	return retval;
@@ -587,7 +535,7 @@ TArray<URTSDKFactionModDefinition*> URTSDKModManager::GetAllValidFactionMods()
 	TArray<URTSDKFactionModDefinition*> retval;
 	for (auto It = FactionModsByName.CreateConstIterator(); It; ++It)
 	{
-		if (It->Value->bIsValid)
+		if (It->Value->IsModValid())
 		{
 			retval.Add(It->Value);
 		}
@@ -601,7 +549,7 @@ TArray<FName> URTSDKModManager::GetAllValidFactionModNames()
 	TArray<URTSDKFactionModDefinition*> mods = GetAllValidFactionMods();
 	for (int32 i = 0; i < mods.Num(); i++)
 	{
-		retval.Add(mods[i]->ModDevName);
+		retval.Add(mods[i]->DevName);
 	}
 
 	return retval;
@@ -612,7 +560,7 @@ TArray<URTSDKMapModDefinition*> URTSDKModManager::GetAllValidMapMods()
 	TArray<URTSDKMapModDefinition*> retval;
 	for (auto It = MapModsByName.CreateConstIterator(); It; ++It)
 	{
-		if (It->Value->bIsValid)
+		if (It->Value->IsModValid())
 		{
 			retval.Add(It->Value);
 		}
@@ -626,7 +574,7 @@ TArray<FName> URTSDKModManager::GetAllValidMapModNames()
 	TArray<URTSDKMapModDefinition*> mods = GetAllValidMapMods();
 	for (int32 i = 0; i < mods.Num(); i++)
 	{
-		retval.Add(mods[i]->ModDevName);
+		retval.Add(mods[i]->DevName);
 	}
 
 	return retval;
@@ -637,7 +585,7 @@ TArray<URTSDKMutatorDefinition*> URTSDKModManager::GetAllValidMutators()
 	TArray<URTSDKMutatorDefinition*> retval;
 	for (auto It = MutatorsByName.CreateConstIterator(); It; ++It)
 	{
-		if (It->Value->bIsValid)
+		if (It->Value->IsModValid())
 		{
 			retval.Add(It->Value);
 		}
@@ -651,7 +599,7 @@ TArray<FName> URTSDKModManager::GetAllValidMutatorNames()
 	TArray<URTSDKMutatorDefinition*> mutators = GetAllValidMutators();
 	for (int32 i = 0; i < mutators.Num(); i++)
 	{
-		retval.Add(mutators[i]->ModDevName);
+		retval.Add(mutators[i]->DevName);
 	}
 
 	return retval;
@@ -683,6 +631,75 @@ TArray<URTSDKConfigurableInputMappingDefinition*> URTSDKModManager::GetAllValidI
 	return retval;
 }
 
+void URTSDKModManager::EnqueueModForActivation(URTSDKModDefinitionBase* inModDef)
+{
+	if (inModDef == nullptr)
+	{
+		return;
+	}
+	ModActivationQueue.AddUnique(inModDef);
+}
+
+void URTSDKModManager::ProgressActivationQueue()
+{
+	if (ModActivationQueue.Num() > 0)
+	{
+		URTSDKModDefinitionBase* mod = ModActivationQueue[0];
+		ModActivationQueue.RemoveAt(0);
+		if (mod != nullptr)
+		{
+			UGameFeaturesSubsystem& gamefeatures = UGameFeaturesSubsystem::Get();
+
+			gamefeatures.LoadAndActivateGameFeaturePlugin(mod->GameFeatureURL, FGameFeaturePluginLoadComplete::CreateLambda(
+				[this, mod](const UE::GameFeatures::FResult& Result)
+				{
+					mod->NotifyQueuedActivation();
+					ProgressActivationQueue();			
+				}
+			));
+		}
+		else
+		{
+			ProgressActivationQueue();
+		}
+	}
+}
+
+void URTSDKModManager::EnqueueModForDeactivation(URTSDKModDefinitionBase* inModDef)
+{
+	if (inModDef == nullptr)
+	{
+		return;
+	}
+	ModDeactivationQueue.AddUnique(inModDef);
+}
+
+void URTSDKModManager::ProgressDeactivationQueue()
+{
+	if (ModDeactivationQueue.Num() > 0)
+	{
+		URTSDKModDefinitionBase* mod = ModDeactivationQueue[0];
+		ModDeactivationQueue.RemoveAt(0);
+		if (mod != nullptr)
+		{
+			UGameFeaturesSubsystem& gamefeatures = UGameFeaturesSubsystem::Get();
+
+			gamefeatures.DeactivateGameFeaturePlugin(mod->GameFeatureURL, FGameFeaturePluginDeactivateComplete::CreateLambda
+			(
+				[this, mod](const UE::GameFeatures::FResult& Result)
+				{
+					mod->NotifyQueuedDeactivation();
+					ProgressDeactivationQueue();
+				}
+			));
+		}
+		else
+		{
+			ProgressDeactivationQueue();
+		}
+	}
+}
+
 void URTSDKModManager::OnGameFeaturePluginLoadComplete(const UE::GameFeatures::FResult& Result)
 {
 	PendingGameFeatureCount--;
@@ -695,4 +712,13 @@ void URTSDKModManager::OnGameFeaturePluginLoadComplete(const UE::GameFeatures::F
 void URTSDKModManager::OnModsFullyActivated()
 {
 	OnActiveModsReady.Broadcast(ActiveMods);
+}
+
+URTSDKModDefinitionBase* FRTSDKRegisteredModsMap::GetModByName(FName inModDevName) const
+{
+	if (ModsByName.Contains(inModDevName))
+	{
+		return ModsByName[inModDevName];
+	}
+	return nullptr;
 }

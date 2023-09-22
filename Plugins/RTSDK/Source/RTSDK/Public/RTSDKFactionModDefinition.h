@@ -3,10 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RTSDKModDefinitionBase.h"
 #include "RTSDKFactionModDefinition.generated.h"
 
 class URTSDKGameModDefinition;
 class URTSDKFactionDefinition;
+class URTSDKFeatureModDefinition;
 
 /**
  * Runtime definition of a Faction Mod, logic and content for a set of units.
@@ -23,13 +25,13 @@ class URTSDKFactionDefinition;
  * Populates the Mod Manager list of Faction Mods.
  */
 UCLASS()
-class RTSDK_API URTSDKFactionModDefinition : public UObject
+class RTSDK_API URTSDKFactionModDefinition : public URTSDKModDefinitionBase
 {
 	GENERATED_BODY()
 	
 public:
 
-	UFUNCTION()
+	/*UFUNCTION()
 		void Init(const URTSDKGameFeatureData* inData);
 
 	UFUNCTION()
@@ -90,6 +92,18 @@ public:
 		bool bIsFullyLoaded;
 
 	UPROPERTY(transient)
-		bool bIsActivated;
+		bool bIsActivated;*/
+
+	UPROPERTY(transient)
+		TSoftClassPtr<URTSDKFactionDefinition> FactionClass;
+
+	UPROPERTY(transient)
+		FName AssociatedGameModName;
+
+	UPROPERTY(transient)
+		TObjectPtr<URTSDKGameModDefinition> AssociatedGameMod;
+
+	UPROPERTY(transient)
+		TSubclassOf<UUserWidget> GameMenuWidgetClass;
 
 };

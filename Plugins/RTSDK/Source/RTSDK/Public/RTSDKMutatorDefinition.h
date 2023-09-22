@@ -3,10 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RTSDKModDefinitionBase.h"
 #include "RTSDKMutatorDefinition.generated.h"
 
 class URTSDKGameFeatureData;
 class URTSDKGameModDefinition;
+class URTSDKFeatureModDefinition;
 
 /**
  * Runtime definition of a Faction Mod, logic and content for a set of units.
@@ -23,13 +25,13 @@ class URTSDKGameModDefinition;
  * Populates the Mod Manager list of Faction Mods.
  */
 UCLASS()
-class RTSDK_API URTSDKMutatorDefinition : public UObject
+class RTSDK_API URTSDKMutatorDefinition : public URTSDKModDefinitionBase
 {
 	GENERATED_BODY()
 	
 public:
 
-	UFUNCTION()
+	/*UFUNCTION()
 		void Init(const URTSDKGameFeatureData* inData);
 
 	UFUNCTION()
@@ -60,7 +62,7 @@ public:
 		TArray<FName> FeatureDependencyNames;
 
 	UPROPERTY(transient)
-		TArray<FString> CombinedGameFeatureURLs;
+		TArray<FString> CombinedGameFeatureURLs;*/
 
 	UPROPERTY(transient)
 		FName AssociatedGameModName;
@@ -68,13 +70,13 @@ public:
 	UPROPERTY(transient)
 		TObjectPtr<URTSDKGameModDefinition> AssociatedGameMod;
 
-	UPROPERTY(transient)
+	/*UPROPERTY(transient)
 		bool bIsValid;
 
 	UPROPERTY(transient)
 		bool bIsFullyLoaded;
 
 	UPROPERTY(transient)
-		bool bIsActivated;
+		bool bIsActivated;*/
 
 };

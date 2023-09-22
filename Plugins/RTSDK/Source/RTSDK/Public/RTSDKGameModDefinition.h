@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RTSDKModDefinitionBase.h"
 #include "RTSDKGameModDefinition.generated.h"
 
 class URTSDKModManager;
@@ -25,62 +26,13 @@ class URTSDKConfigurableHUDDefinition;
  * Populates the Mod Manager list of Game Mods.
  */
 UCLASS()
-class RTSDK_API URTSDKGameModDefinition : public UObject
+class RTSDK_API URTSDKGameModDefinition : public URTSDKModDefinitionBase
 {
 	GENERATED_BODY()
 	
 public:
 
-	UFUNCTION()
-		void Init(const URTSDKGameFeatureData* inData);
-
-	UFUNCTION()
-		void BuildModDependencies(URTSDKModManager* inModManager);
-
-	UFUNCTION()
-		void BuildMod(URTSDKModManager* inModManager);
-
-	UFUNCTION()
-		TArray<FString> LoadMod();
-
-	UPROPERTY(transient)
-		FText ModDisplayName;
-
-	UPROPERTY(transient)
-		FName ModDevName;
-
-	UPROPERTY(transient)
-		FString GameFeatureName;
-
-	UPROPERTY(transient)
-		FString GameFeatureURL;
-
-	UPROPERTY(transient)
-		TArray<FName> FeatureDependencyNames;
-
-	UPROPERTY(transient)
-		TArray<URTSDKFeatureModDefinition*> FeatureDependencies;
-
-	UPROPERTY(transient)
-		TArray<FString> CombinedGameFeatureURLs;
-
-	UPROPERTY(transient)
-		FName ParentGameModName;
-
-	UPROPERTY(transient)
-		TObjectPtr<URTSDKGameModDefinition> ParentGameMod;
-
-	UPROPERTY(transient)
-		bool bIsValid;
-
-	UPROPERTY(transient)
-		bool bIsAbstractMod;
-
-	UPROPERTY(transient)
-		bool bIsFullyLoaded;
-
-	UPROPERTY(transient)
-		bool bIsActivated;
+	virtual void BuildMod(URTSDKModManager* inModManager) override;
 
 	UPROPERTY(transient)
 		TArray<URTSDKMapModDefinition*> ValidMapMods;

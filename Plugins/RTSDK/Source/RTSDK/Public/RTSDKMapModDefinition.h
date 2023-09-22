@@ -3,11 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RTSDKModDefinitionBase.h"
 #include "RTSDKMapModDefinition.generated.h"
 
 class URTSDKModManager;
 class URTSDKGameFeatureData;
-class URTSDKGameModDefinition;
+class URTSDKGameModDefinition; 
+class URTSDKFeatureModDefinition;
 
 /**
  * A definition of a Map Mod, logic and content for a world/level
@@ -21,13 +23,13 @@ class URTSDKGameModDefinition;
  * Populates the Mod Manager list of Map Mods.
  */
 UCLASS()
-class RTSDK_API URTSDKMapModDefinition : public UObject
+class RTSDK_API URTSDKMapModDefinition : public URTSDKModDefinitionBase
 {
 	GENERATED_BODY()
 
 public:
 
-	UFUNCTION()
+	/*UFUNCTION()
 		void Init(const URTSDKGameFeatureData* inData);
 
 	UFUNCTION()
@@ -64,7 +66,7 @@ public:
 		FName ParentMapModName;
 
 	UPROPERTY(transient)
-		TObjectPtr<URTSDKMapModDefinition> ParentMapMod;
+		TObjectPtr<URTSDKMapModDefinition> ParentMapMod;*/
 
 	UPROPERTY(transient)
 		FName AssociatedGameModName;
@@ -78,7 +80,7 @@ public:
 	UPROPERTY(transient)
 		TSubclassOf<UUserWidget> GameMenuWidgetClass;
 
-	UPROPERTY(transient)
+	/*UPROPERTY(transient)
 		bool bIsValid;
 
 	UPROPERTY(transient)
@@ -88,5 +90,5 @@ public:
 		bool bIsFullyLoaded;
 
 	UPROPERTY(transient)
-		bool bIsActivated;
+		bool bIsActivated;*/
 };
