@@ -153,3 +153,9 @@
 //
 //	return retval;
 //}
+
+void URTSDKFactionModDefinition::Init(const URTSDKGameFeatureData* inData)
+{
+	AssociatedModInfo.ModType = RTSDKModTypeNames::Game;
+	Super::Init(inData);
+}

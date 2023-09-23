@@ -216,11 +216,11 @@ public:
 	UFUNCTION()
 		TArray<URTSDKConfigurableInputMappingDefinition*> GetConfigurableMappingsByGameMod(URTSDKGameModDefinition* inGameMod) const;
 
-	UFUNCTION()
-		TArray<FString> GetAllGameFeaturesForMods(URTSDKGameModDefinition* inGameMod, TArray<URTSDKFactionModDefinition*> inFactionMods, URTSDKMapModDefinition* inMapMod, TArray<URTSDKMutatorDefinition*> inMutators) const;
+	//UFUNCTION()
+	//	TArray<FString> GetAllGameFeaturesForMods(URTSDKGameModDefinition* inGameMod, TArray<URTSDKFactionModDefinition*> inFactionMods, URTSDKMapModDefinition* inMapMod, TArray<URTSDKMutatorDefinition*> inMutators) const;
 
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-		TArray<FString> GetAllGameFeaturesForModsByName(FName inGameMod, TArray<FName> inFactionMods, FName inMapMod, TArray<FName> inMutators) const;
+	//UFUNCTION(BlueprintCallable, BlueprintPure)
+	//	TArray<FString> GetAllGameFeaturesForModsByName(FName inGameMod, TArray<FName> inFactionMods, FName inMapMod, TArray<FName> inMutators) const;
 
 	UFUNCTION()
 		FRTSDKActiveModsInfo ActivateMods(URTSDKGameModDefinition* inGameMod, TArray<URTSDKFactionModDefinition*> inFactionMods, URTSDKMapModDefinition* inMapMod, TArray<URTSDKMutatorDefinition*> inMutators);
@@ -275,6 +275,15 @@ public:
 
 protected:
 
+	UFUNCTION()
+		void OnModIsFullyLoaded(URTSDKModDefinitionBase* Sender);
+
+	UFUNCTION()
+		void OnModIsFullyActivated(URTSDKModDefinitionBase* Sender);
+
+	UFUNCTION()
+		void BeginModActivation();
+
 	void OnGameFeaturePluginLoadComplete(const UE::GameFeatures::FResult& Result);
 
 	void OnModsFullyActivated();
@@ -288,7 +297,7 @@ protected:
 	UPROPERTY()
 	TMap<FName, FRTSDKRegisteredModsMap> RegisteredModsByType;
 
-	UPROPERTY()
+	/*UPROPERTY()
 		TMap<FName, URTSDKFeatureModDefinition*> FeatureModsByName;
 
 	UPROPERTY()
@@ -301,7 +310,7 @@ protected:
 		TMap<FName, URTSDKMapModDefinition*> MapModsByName;
 
 	UPROPERTY()
-		TMap<FName, URTSDKMutatorDefinition*> MutatorsByName;
+		TMap<FName, URTSDKMutatorDefinition*> MutatorsByName;*/
 
 	UPROPERTY()
 		TMap<FName, URTSDKConfigurableHUDDefinition*> ConfigurableHUDByName;
@@ -314,6 +323,12 @@ protected:
 
 	UPROPERTY()
 		TArray<FString> PendingLoadGameFeatureURLs;
+
+	UPROPERTY()
+		TArray<URTSDKModDefinitionBase*> PendingLoadingMods;
+
+	UPROPERTY()
+		TArray<URTSDKModDefinitionBase*> PendingActivatingMods;
 
 	UPROPERTY()
 		FRTSDKActiveModsInfo ActiveMods;

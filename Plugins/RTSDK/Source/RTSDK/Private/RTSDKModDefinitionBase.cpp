@@ -479,6 +479,27 @@ bool URTSDKModDefinitionBase::IsModAbstract()
 	return bIsAbstractMod;
 }
 
+URTSDKModDefinitionBase* URTSDKModDefinitionBase::GetParentMod()
+{
+	return ParentModInfo.ModDefinition.Get();
+}
+
+TArray<URTSDKModDefinitionBase*> URTSDKModDefinitionBase::GetModDependencies()
+{
+	TArray<URTSDKModDefinitionBase*> retval;
+	retval.Empty(ModDependencyInfos.Num());
+	for (int32 i = 0; i < ModDependencyInfos.Num(); i++)
+	{
+		retval.Add(ModDependencyInfos[i].ModDefinition.Get());
+	}
+	return retval;
+}
+
+FName URTSDKModDefinitionBase::GetModType()
+{
+	return ModTypeName;
+}
+
 void URTSDKModDefinitionBase::DependencyLoaded(URTSDKModDefinitionBase* Sender)
 {
 	if (ModState != ERTSDKModStates::Loading)
@@ -551,4 +572,15 @@ void URTSDKModDefinitionBase::NotifyQueuedDeactivation()
 	{
 		OnModFullyDeactivated.Broadcast(this);
 	}
+}
+
+void URTSDKAssociatedModDefinitionBase::Init(const URTSDKGameFeatureData* inData)
+{
+	AssociatedModInfo.ModDevName = inData->AssociatedGameModDevName;
+	Super::Init(inData);
+}
+
+URTSDKModDefinitionBase* URTSDKAssociatedModDefinitionBase::GetAssociatedMod()
+{
+	return AssociatedModInfo.ModDefinition.Get();
 }

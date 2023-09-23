@@ -23,72 +23,17 @@ class URTSDKFeatureModDefinition;
  * Populates the Mod Manager list of Map Mods.
  */
 UCLASS()
-class RTSDK_API URTSDKMapModDefinition : public URTSDKModDefinitionBase
+class RTSDK_API URTSDKMapModDefinition : public URTSDKAssociatedModDefinitionBase
 {
 	GENERATED_BODY()
 
 public:
 
-	/*UFUNCTION()
-		void Init(const URTSDKGameFeatureData* inData);
-
-	UFUNCTION()
-		void BuildModDependencies(URTSDKModManager* inModManager);
-	
-	UFUNCTION()
-		void BuildMod(URTSDKModManager* inModManager);
-
-	UFUNCTION()
-		TArray<FString> LoadMod();
-
-	UPROPERTY(transient)
-		FText ModDisplayName;
-
-	UPROPERTY(transient)
-		FName ModDevName;
-
-	UPROPERTY(transient)
-		FString GameFeatureName;
-
-	UPROPERTY(transient)
-		FString GameFeatureURL;
-
-	UPROPERTY(transient)
-		TArray<FName> FeatureDependencyNames;
-
-	UPROPERTY(transient)
-		TArray<URTSDKFeatureModDefinition*> FeatureDependencies;
-
-	UPROPERTY(transient)
-		TArray<FString> CombinedGameFeatureURLs;
-
-	UPROPERTY(transient)
-		FName ParentMapModName;
-
-	UPROPERTY(transient)
-		TObjectPtr<URTSDKMapModDefinition> ParentMapMod;*/
-
-	UPROPERTY(transient)
-		FName AssociatedGameModName;
-
-	UPROPERTY(transient)
-		TObjectPtr<URTSDKGameModDefinition> AssociatedGameMod;
+	virtual void Init(const URTSDKGameFeatureData* inData) override;
 
 	UPROPERTY(transient)
 		FPrimaryAssetId AssociatedLevel;
 
 	UPROPERTY(transient)
 		TSubclassOf<UUserWidget> GameMenuWidgetClass;
-
-	/*UPROPERTY(transient)
-		bool bIsValid;
-
-	UPROPERTY(transient)
-		bool bIsAbstractMod;
-
-	UPROPERTY(transient)
-		bool bIsFullyLoaded;
-
-	UPROPERTY(transient)
-		bool bIsActivated;*/
 };

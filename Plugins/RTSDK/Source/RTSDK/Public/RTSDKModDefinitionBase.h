@@ -94,6 +94,15 @@ public:
 		virtual bool IsModAbstract();
 
 	UFUNCTION()
+		virtual URTSDKModDefinitionBase* GetParentMod();
+
+	UFUNCTION()
+		virtual TArray<URTSDKModDefinitionBase*> GetModDependencies();
+
+	UFUNCTION()
+		virtual FName GetModType();
+
+	UFUNCTION()
 		void DependencyLoaded(URTSDKModDefinitionBase* Sender);
 
 	UFUNCTION()
@@ -130,6 +139,9 @@ public:
 		FName DevName;
 
 	UPROPERTY(transient)
+		FName ModTypeName;
+
+	UPROPERTY(transient)
 		FString GameFeatureName;
 
 	UPROPERTY(transient)
@@ -164,9 +176,29 @@ public:
 		TArray<UObject*> LoadDependingObjects;
 
 	/*
-	* This array keeps track of callers for load and unload
+	* This array keeps track of callers for activate and deactivate
 	* This mod can't enter inactive/loaded state while this has non-zero elements
 	*/
 	UPROPERTY(transient)
 		TArray<UObject*> ActivateDependingObjects;
+};
+
+/**
+ * Base class for mod defs that have association with a mod
+ * child classes are responsible for setting the associated mod's type to search for during their Init override
+ */
+UCLASS()
+class RTSDK_API URTSDKAssociatedModDefinitionBase : public URTSDKModDefinitionBase
+{
+	GENERATED_BODY()
+
+public:
+
+	virtual void Init(const URTSDKGameFeatureData* inData) override;
+
+	UFUNCTION()
+		virtual URTSDKModDefinitionBase* GetAssociatedMod();
+
+	UPROPERTY()
+		FRTSDKModDependencyInfo AssociatedModInfo;
 };
