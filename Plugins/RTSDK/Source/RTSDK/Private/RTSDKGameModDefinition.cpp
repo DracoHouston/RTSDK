@@ -48,6 +48,13 @@
 //	}
 //}
 
+//void URTSDKGameModDefinition::Init(const URTSDKGameFeatureData* inData)
+//{
+//	ModTypeName = RTSDKModTypeNames::Game;
+//	ParentModInfo.ModType = RTSDKModTypeNames::Game;
+//	Super::Init(inData);
+//}
+
 void URTSDKGameModDefinition::BuildMod(URTSDKModManager* inModManager)
 {
 	Super::BuildMod(inModManager);
@@ -86,6 +93,11 @@ void URTSDKGameModDefinition::BuildMod(URTSDKModManager* inModManager)
 	//	ValidFactionMods += inModManager->GetFactionModsByGameMod(allparents[i]);
 	//	ValidConfigurableHUDs += inModManager->GetConfigurableHUDsByGameMod(allparents[i]);
 	//}
+}
+
+FName URTSDKGameModDefinition::GetModType() const
+{
+	return RTSDKModTypeNames::Game;
 }
 
 //TArray<FString> URTSDKGameModDefinition::LoadMod()

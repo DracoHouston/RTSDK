@@ -4,6 +4,7 @@
 #include "RTSDKGameSimSubsystem.h"
 #include "RTSDKMassModuleSettings.h"
 #include "RTSDKDeveloperSettings.h"
+#include "RTSDKLobbySubsystem.h"
 #include "MassExecutor.h"
 #include "MassEntitySubsystem.h"
 #include "MassSignalSubsystem.h"
@@ -21,6 +22,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
+#include "RTSDKModManager.h"
 
 void URTSDKGameSimSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -39,25 +41,11 @@ void URTSDKGameSimSubsystem::PostInitialize()
 
 void URTSDKGameSimSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 {
-	FString DependencyGraphFileName;
-	const URTSDKMassModuleSettings* Settings = GetMutableDefault<URTSDKMassModuleSettings>();
-#if WITH_EDITOR
-	
-	if (Settings != nullptr && !Settings->DumpDependencyGraphFileName.IsEmpty())
-	{
-		DependencyGraphFileName = FString::Printf(TEXT("%s_%s"), *Settings->DumpDependencyGraphFileName, *ToString(InWorld.GetNetMode()));
-	}
-#endif // WITH_EDITOR
-	FString FileName = !DependencyGraphFileName.IsEmpty() ? FString::Printf(TEXT("%s_%s"), *DependencyGraphFileName, *Settings->SimProcessingPhaseConfig.PhaseName.ToString()) : FString();
-	UMassEntitySubsystem* EntitySubsystem = InWorld.GetSubsystem<UMassEntitySubsystem>();
+
 	MassSpawnerSubsystem = InWorld.GetSubsystem<UMassSpawnerSubsystem>();
+	UMassEntitySubsystem* EntitySubsystem = InWorld.GetSubsystem<UMassEntitySubsystem>();
 	EntityManager = EntitySubsystem->GetMutableEntityManager().AsShared();
-	SimProcessor = NewObject<UMassCompositeProcessor>(this, Settings->SimProcessingPhaseConfig.PhaseGroupClass,
-		*FString::Printf(TEXT("ProcessingPhase_%s"), *Settings->SimProcessingPhaseConfig.PhaseName.ToString()));
-	SimProcessor->CopyAndSort(Settings->SimProcessingPhaseConfig, FileName);
-	SimProcessor->SetProcessingPhase(EMassProcessingPhase::PrePhysics);
-	SimProcessor->SetGroupName(FName(FString::Printf(TEXT("%s Group"), *Settings->SimProcessingPhaseConfig.PhaseName.ToString())));
-	SimProcessor->Initialize(*this);
+	//RebuildProcessors();
 
 	const URTSDKDeveloperSettings* RTSDKSettings = GetDefault<URTSDKDeveloperSettings>();
 	SetTimeScale(1.0);
@@ -69,7 +57,15 @@ void URTSDKGameSimSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	SetGravityAcceleration(9.8);
 	SetTerminalVelocity(40.0);
 	bLevelUnitsInitialized = false;
-
+	bSimProcessorsInitialized = false;
+	LobbySubsystem = InWorld.GetGameInstance()->GetSubsystem<URTSDKLobbySubsystem>();
+#if WITH_EDITORONLY_DATA
+	if (InWorld.WorldType == EWorldType::PIE)
+	{
+		ARTSDKWorldSettings* worldsettings = Cast<ARTSDKWorldSettings>(InWorld.GetWorldSettings());
+		LobbySubsystem->CreateNewLobbyPIE(&InWorld, worldsettings->PIEGameModName, worldsettings->PIEFactionModNames, worldsettings->PIEMapModName, worldsettings->PIEMutatorNames);
+	}
+#endif
 	LastRealTimeSeconds = InWorld.RealTimeSeconds;
 	bSimIsPaused = false;
 	if (InWorld.GetNetMode() != NM_Client)
@@ -83,6 +79,16 @@ void URTSDKGameSimSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 
 void URTSDKGameSimSubsystem::Deinitialize()
 {
+#if WITH_EDITORONLY_DATA
+	UWorld* world = GetWorld();
+	if (world->WorldType == EWorldType::PIE)
+	{
+		if (LobbySubsystem != nullptr)
+		{
+			LobbySubsystem->DestroyLobbyPIE(world);
+		}
+	}
+#endif
 	UnitsByID.Empty();
 	bSimIsInitialized = false;
 	bInScriptCallingMode = false;
@@ -102,6 +108,11 @@ void URTSDKGameSimSubsystem::Tick(float DeltaTime)
 		return;
 	}
 
+	if (!LobbySubsystem->IsFullyLoaded())
+	{
+		return;
+	}
+
 	if (!SimState->GetIsPlayerSetup())
 	{
 		SimState->PlayerSetup();
@@ -112,6 +123,12 @@ void URTSDKGameSimSubsystem::Tick(float DeltaTime)
 	{
 		SimState->PreMatchTick();
 		return;
+	}
+
+	if (!bSimProcessorsInitialized)
+	{
+		RebuildProcessors();
+		bSimProcessorsInitialized = true;
 	}
 
 	if (!bLevelUnitsInitialized)
@@ -297,6 +314,35 @@ bool URTSDKGameSimSubsystem::SpawnUnit(UClass* inUnitDefinition, uint32& outUnit
 	info.UnitHandle = Entities[0];
 	UnitsByID.Add(unitid, info);
 	return true;
+}
+
+void URTSDKGameSimSubsystem::RebuildProcessors()
+{
+	//todo: mod manager needs to build a phase config from processors added by mods + the mass module settings
+	//and then this needs to get that from mod manager, we call this after mods and loaded and activated but before the rest of initialization
+	UWorld* world = GetWorld();
+	FString DependencyGraphFileName;
+	const URTSDKMassModuleSettings* Settings = GetMutableDefault<URTSDKMassModuleSettings>();
+#if WITH_EDITOR
+
+	if (Settings != nullptr && !Settings->DumpDependencyGraphFileName.IsEmpty())
+	{
+		DependencyGraphFileName = FString::Printf(TEXT("%s_%s"), *Settings->DumpDependencyGraphFileName, *ToString(world->GetNetMode()));
+	}
+#endif // WITH_EDITOR
+
+	URTSDKModManager* modmanager = GEngine->GetEngineSubsystem<URTSDKModManager>();
+
+	FMassProcessingPhaseConfig& simphase = modmanager->GetActiveSimPhaseConfig(world);
+
+	FString FileName = !DependencyGraphFileName.IsEmpty() ? FString::Printf(TEXT("%s_%s"), *DependencyGraphFileName, *simphase.PhaseName.ToString()) : FString();
+	
+	SimProcessor = NewObject<UMassCompositeProcessor>(this, simphase.PhaseGroupClass,
+		*FString::Printf(TEXT("ProcessingPhase_%s"), *simphase.PhaseName.ToString()));
+	SimProcessor->CopyAndSort(simphase, FileName);
+	SimProcessor->SetProcessingPhase(EMassProcessingPhase::PrePhysics);
+	SimProcessor->SetGroupName(FName(FString::Printf(TEXT("%s Group"), *simphase.PhaseName.ToString())));
+	SimProcessor->Initialize(*this);
 }
 
 bool URTSDKGameSimSubsystem::ShouldFinalizeLockstepTurn()

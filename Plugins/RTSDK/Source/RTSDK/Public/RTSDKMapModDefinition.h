@@ -29,11 +29,14 @@ class RTSDK_API URTSDKMapModDefinition : public URTSDKAssociatedModDefinitionBas
 
 public:
 
-	virtual void Init(const URTSDKGameFeatureData* inData) override;
+	//virtual void Init(const URTSDKGameFeatureData* inData) override;
 
-	UPROPERTY(transient)
+	virtual FName GetModType() const override;
+	virtual FName GetAllowedAssociatedModType() const override;
+
+	UPROPERTY(EditDefaultsOnly)
 		FPrimaryAssetId AssociatedLevel;
 
-	UPROPERTY(transient)
+	UPROPERTY(EditDefaultsOnly)
 		TSubclassOf<UUserWidget> GameMenuWidgetClass;
 };

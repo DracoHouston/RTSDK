@@ -31,6 +31,9 @@ class RTSDK_API URTSDKMutatorDefinition : public URTSDKAssociatedModDefinitionBa
 	
 public:
 
-	virtual void Init(const URTSDKGameFeatureData* inData) override;
+	//virtual void Init(const URTSDKGameFeatureData* inData) override;
 
+
+	virtual FName GetModType() const override;
+	virtual FName GetAllowedAssociatedModType() const override;
 };

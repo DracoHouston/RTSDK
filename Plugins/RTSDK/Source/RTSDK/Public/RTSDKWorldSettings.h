@@ -226,16 +226,16 @@ public:
 		TArray<FString> GetMutatorNames();
 
 	UPROPERTY(EditAnywhere, meta = (GetOptions = "GetMapModNames"))
-		FName PIEMapModName;
+		FString PIEMapModName;
 
 	UPROPERTY(EditAnywhere, meta = (GetOptions = "GetGameModNames"))
-		FName PIEGameModName;
+		FString PIEGameModName;
 
 	UPROPERTY(EditAnywhere, meta = (GetOptions = "GetFactionModNames"))
-		TArray<FName> PIEFactionModNames;
+		TArray<FString> PIEFactionModNames;
 
 	UPROPERTY(EditAnywhere, meta = (GetOptions = "GetMutatorNames"))
-		TArray<FName> PIEMutatorNames;
+		TArray<FString> PIEMutatorNames;
 
 	UPROPERTY(EditAnywhere)
 		TArray<FRTSDKPIETeamSetupInfo> PIEMatchSetup;

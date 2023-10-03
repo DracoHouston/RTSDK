@@ -16,5 +16,31 @@
 	"IsExperimentalVersion": false,
 	"Installed": false,
 	"ExplicitlyLoaded": true,
-	"BuiltInInitialFeatureState": "Registered"
+	"BuiltInInitialFeatureState": "Registered",
+	"Plugins": [
+		{
+			"Name": "TestFactionOneBase",
+			"Enabled": true
+		},
+		{
+			"Name": "TestFactionOneMP",
+			"Enabled": true
+		},
+		{
+			"Name": "TestGameBase",
+			"Enabled": true
+		},
+		{
+			"Name": "TestGameMP",
+			"Enabled": true
+		},
+		{
+			"Name": "TestGameUser",
+			"Enabled": true
+		},
+		{
+			"Name": "RTSDKComplex3DLocomotion",
+			"Enabled": true
+		}
+	]
 }

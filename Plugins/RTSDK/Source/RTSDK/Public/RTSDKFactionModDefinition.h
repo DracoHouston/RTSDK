@@ -31,12 +31,15 @@ class RTSDK_API URTSDKFactionModDefinition : public URTSDKAssociatedModDefinitio
 	
 public:
 
-	virtual void Init(const URTSDKGameFeatureData* inData) override;
+	//virtual void Init(const URTSDKGameFeatureData* inData) override;
 
-	UPROPERTY(transient)
+	virtual FName GetModType() const override;
+	virtual FName GetAllowedAssociatedModType() const override;
+
+	UPROPERTY(EditDefaultsOnly)
 		TSoftClassPtr<URTSDKFactionDefinition> FactionClass;
 
-	UPROPERTY(transient)
+	UPROPERTY(EditDefaultsOnly)
 		TSubclassOf<UUserWidget> GameMenuWidgetClass;
 
 };

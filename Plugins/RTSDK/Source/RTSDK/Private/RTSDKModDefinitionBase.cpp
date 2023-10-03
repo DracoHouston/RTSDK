@@ -4,50 +4,28 @@
 #include "RTSDKModDefinitionBase.h"
 #include "RTSDKGameFeatureData.h"
 #include "RTSDKModManager.h"
+#include "RTSDKFeatureActionBase.h"
 #include "GameFeaturesSubsystem.h"
 
-void URTSDKModDefinitionBase::Init(const URTSDKGameFeatureData* inData)
+void URTSDKModDefinitionBase::InitMod(URTSDKModManager* inModManager)
 {
 	ModState = ERTSDKModStates::Building;
-	if (inData != nullptr)
+	GameFeatureName = GetName();
+	UGameFeaturesSubsystem& gamefeatures = UGameFeaturesSubsystem::Get();
+	FString featureurl;
+	if (gamefeatures.GetPluginURLByName(GameFeatureName, featureurl))
 	{
-		ParentModInfo.ModDevName = inData->ParentModDevName;
-		DevName = inData->DevName;
-		DisplayName = inData->DisplayName;
-		bIsAbstractMod = inData->bIsAbstractMod;
-		ModDependencyInfos.Empty();
-		for (int32 i = 0; i < inData->FeatureDependencies.Num(); i++)
-		{
-			if (inData->FeatureDependencies[i].IsNone())
-			{
-				continue;
-			}
-			FRTSDKModDependencyInfo dependency;
-			dependency.ModType = FName(TEXT("Feature"));
-			dependency.ModDevName = inData->FeatureDependencies[i];
-			ModDependencyInfos.Add(dependency);
-		}
-		GameFeatureName = inData->GetName();
-		UGameFeaturesSubsystem& gamefeatures = UGameFeaturesSubsystem::Get();
-		FString featureurl;
-		if (gamefeatures.GetPluginURLByName(GameFeatureName, featureurl))
-		{
-			GameFeatureURL = featureurl;
-			return;
-		}
-		else
-		{
-			//bad game feature name
-			ModState = ERTSDKModStates::Invalid;
-			return;
-		}
+		GameFeatureURL = featureurl;
+		//return;
 	}
 	else
 	{
-		//bad game feature data
+		//bad game feature name
+		UE_LOG(LogTemp, Log, TEXT("Mod %s was not found by game features, please ensure the plugin is installed and registered before rebuilding."), *GameFeatureName);
 		ModState = ERTSDKModStates::Invalid;
 		return;
 	}
+	inModManager->RegisterMod(GetModType(), this);
 }
 
 void URTSDKModDefinitionBase::BuildModDependencies(URTSDKModManager* inModManager)
@@ -57,43 +35,58 @@ void URTSDKModDefinitionBase::BuildModDependencies(URTSDKModManager* inModManage
 		return;
 	}
 	
-	if ((!ParentModInfo.ModDevName.IsNone()) && (ParentModInfo.ModType.IsNone()))
+	if (ParentMod.IsValid())
 	{
-		URTSDKModDefinitionBase* parent = inModManager->GetMod(ParentModInfo.ModType, ParentModInfo.ModDevName);
+		URTSDKModDefinitionBase* parent = ParentMod.Get();
+
 		if (parent != nullptr)
 		{
-			ParentModInfo.ModDefinition = parent;
-			ParentModInfo.ModDefinition->OnModFullyLoaded.AddDynamic(this, &URTSDKModDefinitionBase::DependencyLoaded);
-			ParentModInfo.ModDefinition->OnModFullyUnloaded.AddDynamic(this, &URTSDKModDefinitionBase::DependencyUnloaded);
-			ParentModInfo.ModDefinition->OnModFullyActivated.AddDynamic(this, &URTSDKModDefinitionBase::DependencyActivated);
-			ParentModInfo.ModDefinition->OnModFullyDeactivated.AddDynamic(this, &URTSDKModDefinitionBase::DependencyDeactivated);
+#if !WITH_EDITORONLY_DATA
+			ParentModPtr = parent;
+#endif
+			parent->OnModFullyLoaded.AddDynamic(this, &URTSDKModDefinitionBase::DependencyLoaded);
+			parent->OnModFullyUnloaded.AddDynamic(this, &URTSDKModDefinitionBase::DependencyUnloaded);
+			//parent->OnModFullyActivated.AddDynamic(this, &URTSDKModDefinitionBase::DependencyActivated);
+			//parent->OnModFullyDeactivated.AddDynamic(this, &URTSDKModDefinitionBase::DependencyDeactivated);
 		}
 		else
 		{
 			//missing parent
+			UE_LOG(LogTemp, Log, TEXT("%s mod has a bad parent!"), *GameFeatureName);
 			ModState = ERTSDKModStates::Invalid;
 			return;
 		}
 	}
 
-	for (int32 i = 0; i < ModDependencyInfos.Num(); i++)
+	TArray<URTSDKModDefinitionBase*> dependencies;
+	dependencies.Empty(FeatureDependencies.Num());
+
+	
+	for (int32 i = 0; i < FeatureDependencies.Num(); i++)
 	{
-		URTSDKModDefinitionBase* dependency = inModManager->GetMod(ModDependencyInfos[i].ModType, ModDependencyInfos[i].ModDevName);
+		URTSDKModDefinitionBase* dependency = FeatureDependencies[i].Get();
 		if (dependency != nullptr)
 		{
-			ModDependencyInfos[i].ModDefinition = dependency;
-			ModDependencyInfos[i].ModDefinition->OnModFullyLoaded.AddDynamic(this, &URTSDKModDefinitionBase::DependencyLoaded);
-			ModDependencyInfos[i].ModDefinition->OnModFullyUnloaded.AddDynamic(this, &URTSDKModDefinitionBase::DependencyUnloaded);
-			ModDependencyInfos[i].ModDefinition->OnModFullyActivated.AddDynamic(this, &URTSDKModDefinitionBase::DependencyActivated);
-			ModDependencyInfos[i].ModDefinition->OnModFullyDeactivated.AddDynamic(this, &URTSDKModDefinitionBase::DependencyDeactivated);
+			if (!dependencies.Contains(dependency))
+			{
+				dependencies.AddUnique(dependency);
+				dependency->OnModFullyLoaded.AddDynamic(this, &URTSDKModDefinitionBase::DependencyLoaded);
+				dependency->OnModFullyUnloaded.AddDynamic(this, &URTSDKModDefinitionBase::DependencyUnloaded);
+				//dependency->OnModFullyActivated.AddDynamic(this, &URTSDKModDefinitionBase::DependencyActivated);
+				//dependency->OnModFullyDeactivated.AddDynamic(this, &URTSDKModDefinitionBase::DependencyDeactivated);
+			}
 		}
 		else
 		{
 			//missing mod dependency
+			UE_LOG(LogTemp, Log, TEXT("Mod %s has a bad dependency"), *GameFeatureName);
 			ModState = ERTSDKModStates::Invalid;
 			return;
 		}
 	}
+#if !WITH_EDITORONLY_DATA
+	FeatureDependencyPtrs = dependencies;
+#endif
 }
 
 void URTSDKModDefinitionBase::BuildMod(URTSDKModManager* inModManager)
@@ -104,69 +97,104 @@ void URTSDKModDefinitionBase::BuildMod(URTSDKModManager* inModManager)
 	}
 		
 	TArray<URTSDKModDefinitionBase*> allparents;
-	URTSDKModDefinitionBase* currentouter = ParentModInfo.ModDefinition.Get();
+	URTSDKModDefinitionBase* currentouter = GetParentMod();
 	while (currentouter != nullptr)
 	{
 		if (currentouter->ModState == ERTSDKModStates::Invalid)
 		{
 			//bad parent
+
+			UE_LOG(LogTemp, Log, TEXT("Mod %s failed to build because parent mod %s failed to build"), *GameFeatureName, *currentouter->GameFeatureName);
 			ModState = ERTSDKModStates::Invalid;
 			return;
 		}
 		if (allparents.Contains(currentouter))
 		{
 			//circular dependency
+
+			UE_LOG(LogTemp, Log, TEXT("Mod %s failed to build because of a circular dependency on parent mod %s"), *GameFeatureName, *currentouter->GameFeatureName);
 			ModState = ERTSDKModStates::Invalid;
 			return;
 		}
 		allparents.Add(currentouter);
-		currentouter = currentouter->ParentModInfo.ModDefinition.Get();
+		currentouter = currentouter->GetParentMod();
 	}
 
 	ModState = ERTSDKModStates::Registered;
 }
 
-void URTSDKModDefinitionBase::LoadMod(UObject* inCallerObject)
+void URTSDKModDefinitionBase::LoadMod(UWorld* inWorldContext, UObject* inCallerObject)
 {
-	//fail out if this mod and any parents and dependencies aren't valid
 	if (!IsModValid())
 	{
 		return;
 	}
-	//fail out if the caller has already called for a load without calling for an unload (which means we're loaded or loading!)
-	if (LoadDependingObjects.Contains(inCallerObject))
+
+	FRTSDKModDependentsArray& worldloaddepenents = LoadDependingObjects.FindOrAdd(inWorldContext);
+
+	if (worldloaddepenents.Dependents.Contains(inCallerObject))
 	{
 		return;
-	}
-	//fail out if we are already loaded, obviously.
-	if (ModState >= ERTSDKModStates::Loaded)
-	{
-		return;
-	}
-	ModState = ERTSDKModStates::Loading;
-	LoadDependingObjects.Add(inCallerObject);
-	if (ParentModInfo.ModDefinition != nullptr)
-	{
-		ParentModInfo.ModDefinition->LoadMod(this);
-	}
-	
-	for (int32 i = 0; i < ModDependencyInfos.Num(); i++)
-	{
-		if (ModDependencyInfos[i].ModDefinition != nullptr)
-		{
-			ModDependencyInfos[i].ModDefinition->LoadMod(this);
-		}
 	}
 
 	UGameFeaturesSubsystem& gamefeatures = UGameFeaturesSubsystem::Get();
+	if (ModState == ERTSDKModStates::Unloading)
+	{
+		gamefeatures.CancelGameFeatureStateChange(GameFeatureURL, FGameFeaturePluginChangeStateComplete::CreateLambda(
+			[this, inWorldContext, inCallerObject](const UE::GameFeatures::FResult& Result)
+			{
+				FRTSDKModDependentsArray& dependents = LoadDependingObjects.FindOrAdd(inWorldContext);
+				dependents.Dependents.Remove(inCallerObject);
+				LoadMod(inWorldContext, inCallerObject);
+			}
+		));
+	}
+
+	bool worldfirst = worldloaddepenents.Dependents.Num() == 0;
+	worldloaddepenents.Dependents.Add(inCallerObject);
+	
+	if (!worldfirst)
+	{
+		return;
+	}	
+
+	URTSDKModDefinitionBase* parent = GetParentMod();
+	if (parent != nullptr)
+	{
+		parent->LoadMod(inWorldContext, this);
+	}
+	TArray<URTSDKModDefinitionBase*> dependencies = GetModDependencies();
+	for (int32 i = 0; i < dependencies.Num(); i++)
+	{
+		if (dependencies[i] != nullptr)
+		{
+			dependencies[i]->LoadMod(inWorldContext, this);
+		}
+	}
+
+	if (ModState == ERTSDKModStates::Loading)
+	{
+		return;
+	}
+
+	if (ModState == ERTSDKModStates::Loaded)
+	{
+		//UE_LOG(LogTemp, Log, TEXT("Loaded: mod %s"), *GameFeatureName);
+		OnModFullyLoaded.Broadcast(inWorldContext, this);
+		return;
+	}
+
+	ModState = ERTSDKModStates::Loading;
+	UE_LOG(LogTemp, Log, TEXT("Loading: mod %s"), *GameFeatureName);	
 
 	gamefeatures.LoadGameFeaturePlugin(GameFeatureURL, FGameFeaturePluginLoadComplete::CreateLambda(
-		[this](const UE::GameFeatures::FResult& Result)
+		[this, inWorldContext](const UE::GameFeatures::FResult& Result)
 		{
 			ModState = ERTSDKModStates::Loaded;
 			if (IsModLoaded())
 			{
-				OnModFullyLoaded.Broadcast(this);
+				UE_LOG(LogTemp, Log, TEXT("Loaded: mod %s"), *GameFeatureName);
+				OnModFullyLoaded.Broadcast(inWorldContext, this);
 			}
 		}
 	));
@@ -174,144 +202,177 @@ void URTSDKModDefinitionBase::LoadMod(UObject* inCallerObject)
 	return;
 }
 
-void URTSDKModDefinitionBase::UnloadMod(UObject* inCallerObject)
+void URTSDKModDefinitionBase::UnloadMod(UWorld* inWorldContext, UObject* inCallerObject)
 {
-	LoadDependingObjects.Remove(inCallerObject);
-	
-	if (LoadDependingObjects.Num() <= 0)
-	{
-		ModState = ERTSDKModStates::Unloading;
-		if (ParentModInfo.ModDefinition != nullptr)
-		{
-			ParentModInfo.ModDefinition->UnloadMod(this);
-		}
+	FRTSDKModDependentsArray& worldloaddepenents = LoadDependingObjects.FindOrAdd(inWorldContext);
+	worldloaddepenents.Dependents.Remove(inCallerObject);
 
-		for (int32 i = 0; i < ModDependencyInfos.Num(); i++)
+	if (worldloaddepenents.Dependents.Num() == 0)
+	{
+		URTSDKModDefinitionBase* parent = GetParentMod();
+		if (parent != nullptr)
 		{
-			if (ModDependencyInfos[i].ModDefinition != nullptr)
+			parent->UnloadMod(inWorldContext, this);
+		}
+		TArray<URTSDKModDefinitionBase*> dependencies = GetModDependencies();
+		for (int32 i = 0; i < dependencies.Num(); i++)
+		{
+			if (dependencies[i] != nullptr)
 			{
-				ModDependencyInfos[i].ModDefinition->UnloadMod(this);
+				dependencies[i]->UnloadMod(inWorldContext, this);
 			}
 		}
+	}
+	bool shouldgarbagecollect = true;
+	for (auto It = LoadDependingObjects.CreateConstIterator(); It; ++It)
+	{
+		if (It->Value.Dependents.Num() > 0)
+		{
+			shouldgarbagecollect = false;
+		}
+	}
 
+	if (shouldgarbagecollect)
+	{
+		ModState = ERTSDKModStates::Unloading;
+		UE_LOG(LogTemp, Log, TEXT("Unloading: mod %s"), *GameFeatureName);
 		UGameFeaturesSubsystem& gamefeatures = UGameFeaturesSubsystem::Get();
-
 		gamefeatures.UnloadGameFeaturePlugin(GameFeatureURL, FGameFeaturePluginUnloadComplete::CreateLambda(
-			[this](const UE::GameFeatures::FResult& Result)
+			[this, inWorldContext](const UE::GameFeatures::FResult& Result)
 			{
 				ModState = ERTSDKModStates::Registered;
 				if (IsModUnloaded())
 				{
-					OnModFullyUnloaded.Broadcast(this);
+					UE_LOG(LogTemp, Log, TEXT("Unloaded: mod %s"), *GameFeatureName);
+					OnModFullyUnloaded.Broadcast(inWorldContext, this);
 				}
 			}
 		), true);
 	}	
 }
 
-void URTSDKModDefinitionBase::ActivateMod(UObject* inCallerObject)
+void URTSDKModDefinitionBase::ActivateMod(UWorld* inWorldContext, UObject* inCallerObject)
 {
-	//fail out if this mod and any parents and dependencies aren't loaded yet
 	if (!IsModLoaded())
 	{
 		return;
 	}
 
-	if (ActivateDependingObjects.Contains(inCallerObject))
+	FRTSDKModDependentsArray& worldsdependents = ActivateDependingObjects.FindOrAdd(inWorldContext);
+	if (worldsdependents.Dependents.Contains(inCallerObject))
+	{
+		return;
+	}
+	worldsdependents.Dependents.Add(inCallerObject);
+
+	ERTSDKWorldModStates& worldmodstate = ModWorldStates.FindOrAdd(inWorldContext);
+	if (worldmodstate != ERTSDKWorldModStates::Inactive)
 	{
 		return;
 	}
 
-	ActivateDependingObjects.Add(inCallerObject);
+	worldmodstate = ERTSDKWorldModStates::Activating;
+	UE_LOG(LogTemp, Log, TEXT("Activating mod: %s"), *GameFeatureName);
 
-	if (ModState >= ERTSDKModStates::Activating)
+	URTSDKModDefinitionBase* parent = GetParentMod();
+	if (parent != nullptr)
 	{
-		return;
-	}
-	ModState = ERTSDKModStates::Activating;
-
-	if (ParentModInfo.ModDefinition != nullptr)
-	{
-		ParentModInfo.ModDefinition->ActivateMod(this);
+		parent->ActivateMod(inWorldContext, this);
 	}
 
-	for (int32 i = 0; i < ModDependencyInfos.Num(); i++)
+	TArray<URTSDKModDefinitionBase*> dependencies = GetModDependencies();
+	for (int32 i = 0; i < dependencies.Num(); i++)
 	{
-		if (ModDependencyInfos[i].ModDefinition != nullptr)
+		if (dependencies[i] != nullptr)
 		{
-			ModDependencyInfos[i].ModDefinition->ActivateMod(this);
+			dependencies[i]->ActivateMod(inWorldContext, this);
 		}
 	}
 
-	URTSDKModManager* modmanager = GEngine->GetEngineSubsystem<URTSDKModManager>();
-	modmanager->EnqueueModForActivation(this);	
+	for (auto It = Actions.CreateIterator(); It; ++It)
+	{
+		URTSDKFeatureActionBase* action = Cast<URTSDKFeatureActionBase>(It->Get());
+		if (action != nullptr)
+		{
+			action->OnGameFeatureActivating(inWorldContext);
+		}
+	}
+
+	worldmodstate = ERTSDKWorldModStates::Activated;
+	UE_LOG(LogTemp, Log, TEXT("Activated mod: %s"), *GameFeatureName);
+	OnModFullyActivated.Broadcast(inWorldContext, this);
 }
 
-void URTSDKModDefinitionBase::DeactivateMod(UObject* inCallerObject)
+void URTSDKModDefinitionBase::DeactivateMod(UWorld* inWorldContext, UObject* inCallerObject)
 {
-	ActivateDependingObjects.Remove(inCallerObject);
-
-	if (ModState <= ERTSDKModStates::Deactivating)
+	ERTSDKWorldModStates& worldmodstate = ModWorldStates.FindOrAdd(inWorldContext);
+	if (worldmodstate != ERTSDKWorldModStates::Activated)
 	{
 		return;
 	}
-
-	if (ActivateDependingObjects.Num() <= 0)
+	FRTSDKModDependentsArray& worldsdependents = ActivateDependingObjects.FindOrAdd(inWorldContext);
+	worldsdependents.Dependents.Remove(inCallerObject);
+	
+	if (worldsdependents.Dependents.Num() <= 0)
 	{
-		ModState = ERTSDKModStates::Deactivating;
+		worldmodstate = ERTSDKWorldModStates::Deactivating;
+		UE_LOG(LogTemp, Log, TEXT("Deactivating mod: %s"), *GameFeatureName);
 
-		if (ParentModInfo.ModDefinition != nullptr)
+		URTSDKModDefinitionBase* parent = GetParentMod();
+		if (parent != nullptr)
 		{
-			ParentModInfo.ModDefinition->DeactivateMod(this);
+			parent->DeactivateMod(inWorldContext, this);
 		}
 
-		for (int32 i = 0; i < ModDependencyInfos.Num(); i++)
+		TArray<URTSDKModDefinitionBase*> dependencies = GetModDependencies();
+		for (int32 i = 0; i < dependencies.Num(); i++)
 		{
-			if (ModDependencyInfos[i].ModDefinition != nullptr)
+			if (dependencies[i] != nullptr)
 			{
-				ModDependencyInfos[i].ModDefinition->DeactivateMod(this);
+				dependencies[i]->DeactivateMod(inWorldContext, this);
+			}
+		}
+		
+		for (auto It = Actions.CreateIterator(); It; ++It)
+		{
+			URTSDKFeatureActionBase* action = Cast<URTSDKFeatureActionBase>(It->Get());
+			if (action != nullptr)
+			{
+				action->OnGameFeatureDeactivating(inWorldContext);
 			}
 		}
 
-		URTSDKModManager* modmanager = GEngine->GetEngineSubsystem<URTSDKModManager>();
-		modmanager->EnqueueModForDeactivation(this);
+		worldmodstate = ERTSDKWorldModStates::Inactive;
+		UE_LOG(LogTemp, Log, TEXT("Deactivated mod: %s"), *GameFeatureName);
+		OnModFullyDeactivated.Broadcast(inWorldContext, this);
 	}
 }
 
 bool URTSDKModDefinitionBase::IsModValid()
 {
-	//if we arent valid then that's that.
 	if (ModState == ERTSDKModStates::Invalid)
 	{
 		return false;
 	}
 
-	//if parent is specified
-	if ((!ParentModInfo.ModDevName.IsNone()) && (!ParentModInfo.ModType.IsNone()))
+	URTSDKModDefinitionBase* parent = GetParentMod();
+	if (parent != nullptr)
 	{
-		//if the mod has not been built yet/specified parent didn't exist we aren't valid
-		if (ParentModInfo.ModDefinition == nullptr)
-		{
-			return false;
-		}
-		//if the parent is not valid we aren't valid either.
-		if (!ParentModInfo.ModDefinition->IsModValid())
+		if (!parent->IsModValid())
 		{
 			return false;
 		}
 	}
-	//for each dependency
-	for (int32 i = 0; i < ModDependencyInfos.Num(); i++)
+	
+	TArray<URTSDKModDefinitionBase*> dependencies = GetModDependencies();
+	for (int32 i = 0; i < dependencies.Num(); i++)
 	{
-		//if the mod has not been built yet/specified dependency didn't exist we aren't valid
-		if (ModDependencyInfos[i].ModDefinition == nullptr)
+		if (dependencies[i] != nullptr)
 		{
-			return false;
-		}
-		//if the dependency is not valid we aren't valid either.
-		if (!ModDependencyInfos[i].ModDefinition->IsModValid())
-		{
-			return false;
+			if (!dependencies[i]->IsModValid())
+			{
+				return false;
+			}
 		}
 	}
 
@@ -320,37 +381,29 @@ bool URTSDKModDefinitionBase::IsModValid()
 
 bool URTSDKModDefinitionBase::IsModLoaded()
 {
-	//if we arent loaded then that's that.
 	if (ModState < ERTSDKModStates::Loaded)
 	{
 		return false;
 	}
 
-	//if parent is specified
-	if ((!ParentModInfo.ModDevName.IsNone()) && (!ParentModInfo.ModType.IsNone()))
+	URTSDKModDefinitionBase* parent = GetParentMod();
+	if (parent != nullptr)
 	{
-		//if specified parent exists don't bother checking
-		if (ParentModInfo.ModDefinition != nullptr)
+		if (!parent->IsModLoaded())
 		{
-			//if the parent is not loaded we aren't loaded either.
-			if (!ParentModInfo.ModDefinition->IsModLoaded())
+			return false;
+		}
+	}
+	
+	TArray<URTSDKModDefinitionBase*> dependencies = GetModDependencies();
+	for (int32 i = 0; i < dependencies.Num(); i++)
+	{
+		if (dependencies[i] != nullptr)
+		{
+			if (!dependencies[i]->IsModLoaded())
 			{
 				return false;
 			}
-		}
-	}
-	//for each dependency
-	for (int32 i = 0; i < ModDependencyInfos.Num(); i++)
-	{
-		//if specified dependency didn't exist don't bother
-		if (ModDependencyInfos[i].ModDefinition == nullptr)
-		{
-			continue;
-		}
-		//if the dependency is not loaded we aren't loaded either.
-		if (!ModDependencyInfos[i].ModDefinition->IsModLoaded())
-		{
-			return false;
 		}
 	}
 
@@ -359,115 +412,97 @@ bool URTSDKModDefinitionBase::IsModLoaded()
 
 bool URTSDKModDefinitionBase::IsModUnloaded()
 {
-	//if we arent registered or below then that's that.
 	if (ModState > ERTSDKModStates::Registered)
 	{
 		return false;
 	}
 
-	//if parent is specified
-	if ((!ParentModInfo.ModDevName.IsNone()) && (!ParentModInfo.ModType.IsNone()))
+	URTSDKModDefinitionBase* parent = GetParentMod();
+	if (parent != nullptr)
 	{
-		//if specified parent exists don't bother checking
-		if (ParentModInfo.ModDefinition != nullptr)
+		if (!parent->IsModUnloaded())
 		{
-			//if the parent is not loaded we aren't loaded either.
-			if (!ParentModInfo.ModDefinition->IsModUnloaded())
+			return false;
+		}
+	}
+
+	TArray<URTSDKModDefinitionBase*> dependencies = GetModDependencies();
+	for (int32 i = 0; i < dependencies.Num(); i++)
+	{
+		if (dependencies[i] != nullptr)
+		{
+			if (!dependencies[i]->IsModUnloaded())
 			{
 				return false;
 			}
-		}
-	}
-	//for each dependency
-	for (int32 i = 0; i < ModDependencyInfos.Num(); i++)
-	{
-		//if specified dependency didn't exist don't bother
-		if (ModDependencyInfos[i].ModDefinition == nullptr)
-		{
-			continue;
-		}
-		//if the dependency is not loaded we aren't loaded either.
-		if (!ModDependencyInfos[i].ModDefinition->IsModUnloaded())
-		{
-			return false;
 		}
 	}
 
 	return true;
 }
 
-bool URTSDKModDefinitionBase::IsModActivated()
+bool URTSDKModDefinitionBase::IsModActivated(UWorld* WorldContext)
 {
-	//if we arent activated then that's that.
-	if (ModState < ERTSDKModStates::Activated)
+	ERTSDKWorldModStates& worldmodstate = ModWorldStates.FindOrAdd(WorldContext);
+	
+	if (worldmodstate < ERTSDKWorldModStates::Activated)
 	{
 		return false;
 	}
 
-	//if parent is specified
-	if ((!ParentModInfo.ModDevName.IsNone()) && (!ParentModInfo.ModType.IsNone()))
+	URTSDKModDefinitionBase* parent = GetParentMod();
+	if (parent != nullptr)
 	{
-		//if specified parent doesn't exist don't bother checking
-		if (ParentModInfo.ModDefinition != nullptr)
+		if (!parent->IsModActivated(WorldContext))
 		{
-			//if the parent is not activated we aren't activated either.
-			if (!ParentModInfo.ModDefinition->IsModActivated())
+			return false;
+		}
+	}
+
+	TArray<URTSDKModDefinitionBase*> dependencies = GetModDependencies();
+	for (int32 i = 0; i < dependencies.Num(); i++)
+	{
+		//if the mod has not been built yet/specified dependency didn't exist we aren't valid
+		if (dependencies[i] != nullptr)
+		{
+			if (!dependencies[i]->IsModActivated(WorldContext))
 			{
 				return false;
 			}
-		}
-	}
-	//for each dependency
-	for (int32 i = 0; i < ModDependencyInfos.Num(); i++)
-	{
-		//if specified dependency didn't exist don't bother
-		if (ModDependencyInfos[i].ModDefinition == nullptr)
-		{
-			continue;
-		}
-		//if the dependency is not activated we aren't activated either.
-		if (!ModDependencyInfos[i].ModDefinition->IsModActivated())
-		{
-			return false;
 		}
 	}
 
 	return true;
 }
 
-bool URTSDKModDefinitionBase::IsModDeactivated()
+bool URTSDKModDefinitionBase::IsModDeactivated(UWorld* WorldContext)
 {
-	//if we arent loaded or below then that's that.
-	if (ModState > ERTSDKModStates::Loaded)
+	ERTSDKWorldModStates& worldmodstate = ModWorldStates.FindOrAdd(WorldContext);
+
+	if (worldmodstate > ERTSDKWorldModStates::Inactive)
 	{
 		return false;
 	}
 
-	//if parent is specified
-	if ((!ParentModInfo.ModDevName.IsNone()) && (!ParentModInfo.ModType.IsNone()))
+	URTSDKModDefinitionBase* parent = GetParentMod();
+	if (parent != nullptr)
 	{
-		//if specified parent exists don't bother checking
-		if (ParentModInfo.ModDefinition != nullptr)
+		if (!parent->IsModDeactivated(WorldContext))
 		{
-			//if the parent is not loaded we aren't loaded either.
-			if (!ParentModInfo.ModDefinition->IsModDeactivated())
+			return false;
+		}
+	}
+
+	TArray<URTSDKModDefinitionBase*> dependencies = GetModDependencies();
+	for (int32 i = 0; i < dependencies.Num(); i++)
+	{
+		//if the mod has not been built yet/specified dependency didn't exist we aren't valid
+		if (dependencies[i] != nullptr)
+		{
+			if (!dependencies[i]->IsModDeactivated(WorldContext))
 			{
 				return false;
 			}
-		}
-	}
-	//for each dependency
-	for (int32 i = 0; i < ModDependencyInfos.Num(); i++)
-	{
-		//if specified dependency didn't exist don't bother
-		if (ModDependencyInfos[i].ModDefinition == nullptr)
-		{
-			continue;
-		}
-		//if the dependency is not loaded we aren't loaded either.
-		if (!ModDependencyInfos[i].ModDefinition->IsModDeactivated())
-		{
-			return false;
 		}
 	}
 
@@ -481,26 +516,36 @@ bool URTSDKModDefinitionBase::IsModAbstract()
 
 URTSDKModDefinitionBase* URTSDKModDefinitionBase::GetParentMod()
 {
-	return ParentModInfo.ModDefinition.Get();
+#if !WITH_EDITORONLY_DATA
+	return ParentModPtr;
+#else
+	return ParentMod.Get();
+#endif
+	
 }
 
 TArray<URTSDKModDefinitionBase*> URTSDKModDefinitionBase::GetModDependencies()
 {
+#if !WITH_EDITORONLY_DATA
+	return FeatureDependencyPtrs;
+#else
 	TArray<URTSDKModDefinitionBase*> retval;
-	retval.Empty(ModDependencyInfos.Num());
-	for (int32 i = 0; i < ModDependencyInfos.Num(); i++)
+	retval.Empty(FeatureDependencies.Num());
+	for (int32 i = 0; i < FeatureDependencies.Num(); i++)
 	{
-		retval.Add(ModDependencyInfos[i].ModDefinition.Get());
+		retval.Add(FeatureDependencies[i].Get());
 	}
 	return retval;
+#endif
+	
 }
 
-FName URTSDKModDefinitionBase::GetModType()
+FName URTSDKModDefinitionBase::GetModType() const
 {
-	return ModTypeName;
+	return FName();
 }
 
-void URTSDKModDefinitionBase::DependencyLoaded(URTSDKModDefinitionBase* Sender)
+void URTSDKModDefinitionBase::DependencyLoaded(UWorld* WorldContext, URTSDKModDefinitionBase* Sender)
 {
 	if (ModState != ERTSDKModStates::Loading)
 	{
@@ -508,11 +553,11 @@ void URTSDKModDefinitionBase::DependencyLoaded(URTSDKModDefinitionBase* Sender)
 	}
 	if (IsModLoaded())
 	{
-		OnModFullyLoaded.Broadcast(this);
+		OnModFullyLoaded.Broadcast(WorldContext, this);
 	}
 }
 
-void URTSDKModDefinitionBase::DependencyUnloaded(URTSDKModDefinitionBase* Sender)
+void URTSDKModDefinitionBase::DependencyUnloaded(UWorld* WorldContext, URTSDKModDefinitionBase* Sender)
 {
 	if (ModState != ERTSDKModStates::Unloading)
 	{
@@ -520,67 +565,94 @@ void URTSDKModDefinitionBase::DependencyUnloaded(URTSDKModDefinitionBase* Sender
 	}
 	if (IsModUnloaded())
 	{
-		OnModFullyUnloaded.Broadcast(this);
+		OnModFullyUnloaded.Broadcast(WorldContext, this);
 	}
 }
+//
+//void URTSDKModDefinitionBase::DependencyActivated(UWorld* WorldContext, URTSDKModDefinitionBase* Sender)
+//{
+//	ERTSDKWorldModStates& worldmodstate = ModWorldStates.FindOrAdd(WorldContext);
+//	if (worldmodstate != ERTSDKWorldModStates::Activating)
+//	{
+//		return;
+//	}
+//	if (IsModActivated(WorldContext))
+//	{
+//		OnModFullyActivated.Broadcast(WorldContext, this);
+//	}
+//}
+//
+//void URTSDKModDefinitionBase::DependencyDeactivated(UWorld* WorldContext, URTSDKModDefinitionBase* Sender)
+//{
+//	ERTSDKWorldModStates& worldmodstate = ModWorldStates.FindOrAdd(WorldContext);
+//	if (worldmodstate != ERTSDKWorldModStates::Deactivating)
+//	{
+//		return;
+//	}
+//	if (IsModDeactivated())
+//	{
+//		OnModFullyDeactivated.Broadcast(WorldContext, this);
+//	}
+//}
 
-void URTSDKModDefinitionBase::DependencyActivated(URTSDKModDefinitionBase* Sender)
+//void URTSDKModDefinitionBase::Internal_ActivateInWorld(UWorld* WorldContext)
+//{
+//}
+
+void URTSDKAssociatedModDefinitionBase::BuildModDependencies(URTSDKModManager* inModManager)
 {
-	if (ModState != ERTSDKModStates::Activating)
+	Super::BuildModDependencies(inModManager);
+	if (ModState == ERTSDKModStates::Invalid)
 	{
 		return;
 	}
-	if (IsModActivated())
-	{
-		OnModFullyActivated.Broadcast(this);
-	}
-}
 
-void URTSDKModDefinitionBase::DependencyDeactivated(URTSDKModDefinitionBase* Sender)
-{
-	if (ModState != ERTSDKModStates::Deactivating)
+	if (AssociatedMod.IsValid())
 	{
-		return;
-	}
-	if (IsModDeactivated())
-	{
-		OnModFullyDeactivated.Broadcast(this);
-	}
-}
+		URTSDKModDefinitionBase* associatedmod = AssociatedMod.Get();
 
-void URTSDKModDefinitionBase::NotifyQueuedActivation()
-{
-	if (ModState != ERTSDKModStates::Activating)
-	{
-		return;
+		if (associatedmod != nullptr)
+		{
+			if (associatedmod->GetModType() == GetAllowedAssociatedModType())
+			{
+#if !WITH_EDITORONLY_DATA
+				AssociatedModPtr = associatedmod;
+#endif
+				associatedmod->OnModFullyLoaded.AddDynamic(this, &URTSDKModDefinitionBase::DependencyLoaded);
+				associatedmod->OnModFullyUnloaded.AddDynamic(this, &URTSDKModDefinitionBase::DependencyUnloaded);
+				//associatedmod->OnModFullyActivated.AddDynamic(this, &URTSDKModDefinitionBase::DependencyActivated);
+				//associatedmod->OnModFullyDeactivated.AddDynamic(this, &URTSDKModDefinitionBase::DependencyDeactivated);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Log, TEXT("%s mod has an association with %s mod which is not a %s type mod!"), 
+					*GameFeatureName, 
+					*associatedmod->GameFeatureName, 
+					*GetAllowedAssociatedModType().ToString());
+				ModState = ERTSDKModStates::Invalid;
+				return;
+			}
+		}
+		else
+		{
+			//missing associated mod
+			UE_LOG(LogTemp, Log, TEXT("%s mod has a bad associated mod!"), *GameFeatureName);
+			ModState = ERTSDKModStates::Invalid;
+			return;
+		}
 	}
-	ModState = ERTSDKModStates::Activated;
-	if (IsModActivated())
-	{
-		OnModFullyActivated.Broadcast(this);
-	}
-}
-
-void URTSDKModDefinitionBase::NotifyQueuedDeactivation()
-{
-	if (ModState != ERTSDKModStates::Deactivating)
-	{
-		return;
-	}
-	ModState = ERTSDKModStates::Loaded;
-	if (IsModDeactivated())
-	{
-		OnModFullyDeactivated.Broadcast(this);
-	}
-}
-
-void URTSDKAssociatedModDefinitionBase::Init(const URTSDKGameFeatureData* inData)
-{
-	AssociatedModInfo.ModDevName = inData->AssociatedGameModDevName;
-	Super::Init(inData);
 }
 
 URTSDKModDefinitionBase* URTSDKAssociatedModDefinitionBase::GetAssociatedMod()
 {
-	return AssociatedModInfo.ModDefinition.Get();
+#if !WITH_EDITORONLY_DATA
+	return AssociatedModPtr;
+#else
+	return AssociatedMod.Get();
+#endif	
+}
+
+FName URTSDKAssociatedModDefinitionBase::GetAllowedAssociatedModType() const
+{
+	return FName();
 }

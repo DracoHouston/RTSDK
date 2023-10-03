@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Subsystems/EngineSubsystem.h"
 #include "GameFeaturePluginOperationResult.h"
+#include "MassEntitySettings.h"
 #include "RTSDKModManager.generated.h"
 
 class URTSDKFeatureModDefinition;
@@ -26,14 +27,22 @@ namespace RTSDKModTypeNames
 }
 
 USTRUCT(BlueprintType)
-struct FRTSDKActiveModsInfo
+struct RTSDK_API FRTSDKModsArray
 {
 	GENERATED_BODY()
 
 public:
+	UPROPERTY()
+		TArray<URTSDKModDefinitionBase*> Mods;
 
-	UPROPERTY(BlueprintReadOnly)
-		TArray<FString> GameFeatureURLs;
+};
+
+USTRUCT(BlueprintType)
+struct RTSDK_API FRTSDKActiveModsInfo
+{
+	GENERATED_BODY()
+
+public:
 
 	UPROPERTY(BlueprintReadOnly)
 		TSubclassOf<UUserWidget> GameMenuOverrideClass;
@@ -52,6 +61,21 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 		TArray<TObjectPtr<URTSDKMutatorDefinition>> ActiveMutators;
+
+	//todo: move these from here to game sim subsystem, but we need to get a specific world pointer to the action somehow!
+
+	UPROPERTY()
+		FMassProcessingPhaseConfig ActiveSimProcessingPhase;
+
+	UPROPERTY()
+		TMap<UMassProcessor*, FRTSDKModsArray> AdditionalProcessorCDOs;
+
+	/*UPROPERTY()
+		TArray<UWorld*> SubscribedWorlds;*/
+
+	bool IsValid();
+
+	bool operator==(const FRTSDKActiveModsInfo& Other);
 };
 
 USTRUCT(BlueprintType)
@@ -61,13 +85,13 @@ struct RTSDK_API FRTSDKRegisteredModsMap
 
 public:
 
-	URTSDKModDefinitionBase* GetModByName(FName inModDevName) const;
+	URTSDKModDefinitionBase* GetModByName(FString inModName) const;
 
 	UPROPERTY()
-		TMap<FName, URTSDKModDefinitionBase*> ModsByName;
+		TMap<FString, URTSDKModDefinitionBase*> ModsByName;
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRTSDKOnActiveModsReady, FRTSDKActiveModsInfo, inActiveModsInfo);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRTSDKOnActiveModsReady, UWorld*, WorldContext, FRTSDKActiveModsInfo, inActiveModsInfo);
 
 
 /**
@@ -154,49 +178,49 @@ public:
 	* Gets a feature mod def by its dev name, if it exists. Will return nullptr if it does not.
 	*/
 	UFUNCTION()
-		URTSDKFeatureModDefinition* GetFeatureModByName(FName inModDevName) const;
+		URTSDKFeatureModDefinition* GetFeatureModByName(FString inModDevName) const;
 
 	/**
 	* Gets a feature mod def by its dev name, if it exists. Will return nullptr if it does not.
 	*/
 	UFUNCTION()
-		URTSDKModDefinitionBase* GetMod(FName inModTypeName, FName inModDevName) const;
+		URTSDKModDefinitionBase* GetMod(FName inModTypeName, FString inModDevName) const;
 
 	/**
 	* Gets a game mod def by its dev name, if it exists. Will return nullptr if it does not.
 	*/
 	UFUNCTION()
-		URTSDKGameModDefinition* GetGameModByName(FName inModDevName) const;
+		URTSDKGameModDefinition* GetGameModByName(FString inModDevName) const;
 
 	/**
 	* Gets a faction mod def by its dev name, if it exists. Will return nullptr if it does not.
 	*/
 	UFUNCTION()
-		URTSDKFactionModDefinition* GetFactionModByName(FName inModDevName) const;
+		URTSDKFactionModDefinition* GetFactionModByName(FString inModDevName) const;
 
 	/**
 	* Gets a map mod def by its dev name, if it exists. Will return nullptr if it does not.
 	*/
 	UFUNCTION()
-		URTSDKMapModDefinition* GetMapModByName(FName inModDevName) const;
+		URTSDKMapModDefinition* GetMapModByName(FString inModDevName) const;
 
 	/**
 	* Gets a mutator def by its dev name, if it exists. Will return nullptr if it does not.
 	*/
 	UFUNCTION()
-		URTSDKMutatorDefinition* GetMutatorByName(FName inModDevName) const;
+		URTSDKMutatorDefinition* GetMutatorByName(FString inModDevName) const;
 
 	/**
 	* Gets a configurable HUD def by its dev name, if it exists. Will return nullptr if it does not.
 	*/
-	UFUNCTION()
-		URTSDKConfigurableHUDDefinition* GetConfigurableHUDByName(FName inHUDDevName) const;
+	/*UFUNCTION()
+		URTSDKConfigurableHUDDefinition* GetConfigurableHUDByName(FName inHUDDevName) const;*/
 
 	/**
 	* Gets a configurable input mapping def by its dev name, if it exists. Will return nullptr if it does not.
 	*/
-	UFUNCTION()
-		URTSDKConfigurableInputMappingDefinition* GetConfigurableInputMappingByName(FName inMappingDevName) const;
+	/*UFUNCTION()
+		URTSDKConfigurableInputMappingDefinition* GetConfigurableInputMappingByName(FName inMappingDevName) const;*/
 
 	/**
 	* Gets a game mod by its dev name, if it exists. Will return nullptr if it does not.
@@ -210,47 +234,44 @@ public:
 	UFUNCTION()
 		TArray<URTSDKMutatorDefinition*> GetMutatorsByGameMod(URTSDKGameModDefinition* inGameMod) const;
 
-	UFUNCTION()
+	/*UFUNCTION()
 		TArray<URTSDKConfigurableHUDDefinition*> GetConfigurableHUDsByGameMod(URTSDKGameModDefinition* inGameMod) const;
 
 	UFUNCTION()
-		TArray<URTSDKConfigurableInputMappingDefinition*> GetConfigurableMappingsByGameMod(URTSDKGameModDefinition* inGameMod) const;
-
-	//UFUNCTION()
-	//	TArray<FString> GetAllGameFeaturesForMods(URTSDKGameModDefinition* inGameMod, TArray<URTSDKFactionModDefinition*> inFactionMods, URTSDKMapModDefinition* inMapMod, TArray<URTSDKMutatorDefinition*> inMutators) const;
-
-	//UFUNCTION(BlueprintCallable, BlueprintPure)
-	//	TArray<FString> GetAllGameFeaturesForModsByName(FName inGameMod, TArray<FName> inFactionMods, FName inMapMod, TArray<FName> inMutators) const;
+		TArray<URTSDKConfigurableInputMappingDefinition*> GetConfigurableMappingsByGameMod(URTSDKGameModDefinition* inGameMod) const;*/
 
 	UFUNCTION()
-		FRTSDKActiveModsInfo ActivateMods(URTSDKGameModDefinition* inGameMod, TArray<URTSDKFactionModDefinition*> inFactionMods, URTSDKMapModDefinition* inMapMod, TArray<URTSDKMutatorDefinition*> inMutators);
+		FRTSDKActiveModsInfo ActivateMods(UWorld* Caller, URTSDKGameModDefinition* inGameMod, TArray<URTSDKFactionModDefinition*> inFactionMods, URTSDKMapModDefinition* inMapMod, TArray<URTSDKMutatorDefinition*> inMutators);
 
 	UFUNCTION(BlueprintCallable)
-		FRTSDKActiveModsInfo ActivateModsByName(FName inGameMod, TArray<FName> inFactionMods, FName inMapMod, TArray<FName> inMutators);
+		FRTSDKActiveModsInfo ActivateModsByName(UWorld* Caller, FString inGameMod, TArray<FString> inFactionMods, FString inMapMod, TArray<FString> inMutators);
+
+	UFUNCTION(BlueprintCallable)
+		void DeactivateMods(UWorld* Caller);
 
 	UFUNCTION()
 		TArray<URTSDKGameModDefinition*> GetAllValidGameMods();
 
 	UFUNCTION()
-		TArray<FName> GetAllValidGameModNames();
+		TArray<FString> GetAllValidGameModNames();
 
 	UFUNCTION()
 		TArray<URTSDKFactionModDefinition*> GetAllValidFactionMods();
 
 	UFUNCTION()
-		TArray<FName> GetAllValidFactionModNames();
+		TArray<FString> GetAllValidFactionModNames();
 
 	UFUNCTION()
 		TArray<URTSDKMapModDefinition*> GetAllValidMapMods();
 
 	UFUNCTION()
-		TArray<FName> GetAllValidMapModNames();
+		TArray<FString> GetAllValidMapModNames();
 
 	UFUNCTION()
 		TArray<URTSDKMutatorDefinition*> GetAllValidMutators();
 
 	UFUNCTION()
-		TArray<FName> GetAllValidMutatorNames();
+		TArray<FString> GetAllValidMutatorNames();
 
 	UFUNCTION()
 		TArray<URTSDKConfigurableHUDDefinition*> GetAllValidHUDs();
@@ -258,7 +279,7 @@ public:
 	UFUNCTION()
 		TArray<URTSDKConfigurableInputMappingDefinition*> GetAllValidInputMappings();	
 
-	UFUNCTION()
+	/*UFUNCTION()
 		void EnqueueModForActivation(URTSDKModDefinitionBase* inModDef);
 
 	UFUNCTION()
@@ -268,49 +289,39 @@ public:
 		void EnqueueModForDeactivation(URTSDKModDefinitionBase* inModDef);
 
 	UFUNCTION()
-		void ProgressDeactivationQueue();
+		void ProgressDeactivationQueue();*/
 
 	UPROPERTY(BlueprintAssignable)
 		FRTSDKOnActiveModsReady OnActiveModsReady;
 
+	UFUNCTION()
+		void AddMassProcessorToActiveSimPhase(UWorld* WorldContext, URTSDKModDefinitionBase* Caller, UMassProcessor* inProcessorCDO);
+
+	UFUNCTION()
+		FMassProcessingPhaseConfig& GetActiveSimPhaseConfig(UWorld* WorldContext);
+
 protected:
 
 	UFUNCTION()
-		void OnModIsFullyLoaded(URTSDKModDefinitionBase* Sender);
+		void OnModIsFullyLoaded(UWorld* WorldContext, URTSDKModDefinitionBase* Sender);
 
 	UFUNCTION()
-		void OnModIsFullyActivated(URTSDKModDefinitionBase* Sender);
+		void OnModIsFullyActivated(UWorld* WorldContext, URTSDKModDefinitionBase* Sender);
 
 	UFUNCTION()
-		void BeginModActivation();
+		void BeginModActivation(UWorld* WorldContext);
 
-	void OnGameFeaturePluginLoadComplete(const UE::GameFeatures::FResult& Result);
-
-	void OnModsFullyActivated();
-
-	UPROPERTY()
-		TArray<URTSDKModDefinitionBase*> ModActivationQueue;
+	UFUNCTION()
+		void OnModsFullyActivated(UWorld* WorldContext);
 
 	UPROPERTY()
-		TArray<URTSDKModDefinitionBase*> ModDeactivationQueue;
+		TMap<UWorld*, FRTSDKModsArray> ModActivationQueue;
 
 	UPROPERTY()
-	TMap<FName, FRTSDKRegisteredModsMap> RegisteredModsByType;
-
-	/*UPROPERTY()
-		TMap<FName, URTSDKFeatureModDefinition*> FeatureModsByName;
+		TMap<UWorld*, FRTSDKModsArray> ModDeactivationQueue;
 
 	UPROPERTY()
-		TMap<FName, URTSDKGameModDefinition*> GameModsByName;
-
-	UPROPERTY()
-		TMap<FName, URTSDKFactionModDefinition*> FactionModsByName;
-
-	UPROPERTY()
-		TMap<FName, URTSDKMapModDefinition*> MapModsByName;
-
-	UPROPERTY()
-		TMap<FName, URTSDKMutatorDefinition*> MutatorsByName;*/
+		TMap<FName, FRTSDKRegisteredModsMap> RegisteredModsByType;
 
 	UPROPERTY()
 		TMap<FName, URTSDKConfigurableHUDDefinition*> ConfigurableHUDByName;
@@ -319,17 +330,11 @@ protected:
 		TMap<FName, URTSDKConfigurableInputMappingDefinition*> ConfigurableMappingsByName;
 
 	UPROPERTY()
-		int32 PendingGameFeatureCount;
+		TMap<UWorld*, FRTSDKModsArray> PendingLoadingMods;
 
 	UPROPERTY()
-		TArray<FString> PendingLoadGameFeatureURLs;
+		TMap<UWorld*, FRTSDKModsArray> PendingActivatingMods;
 
 	UPROPERTY()
-		TArray<URTSDKModDefinitionBase*> PendingLoadingMods;
-
-	UPROPERTY()
-		TArray<URTSDKModDefinitionBase*> PendingActivatingMods;
-
-	UPROPERTY()
-		FRTSDKActiveModsInfo ActiveMods;
+		TMap<UWorld*, FRTSDKActiveModsInfo> ActiveMods;
 };

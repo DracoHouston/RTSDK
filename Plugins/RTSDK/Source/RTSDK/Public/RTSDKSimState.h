@@ -463,7 +463,7 @@ protected:
 	UPROPERTY(Transient)
 	int32 FramesPerTurn;
 
-	UPROPERTY(Transient, Replicated)
+	UPROPERTY(Transient)
 		int32 LockstepTimeoutTurnCount;
 
 	UPROPERTY(Transient)

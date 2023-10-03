@@ -214,6 +214,10 @@
 		{
 			"Name": "TestMapUser",
 			"Enabled": true
+		},
+		{
+			"Name": "RTSDKComplex3DLocomotion",
+			"Enabled": true
 		}
 	]
 }

@@ -1,0 +1,49 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "RTSDKComplex3DLocomotion",
+	"Description": "A feature mod for RTSDK providing an opt-in complex 3d locomotion system for units.",
+	"Category": "Game Features",
+	"CreatedBy": "Jason 'Draco' Houston",
+	"CreatedByURL": "draco@dracohouston.net",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"EnabledByDefault": false,
+	"CanContainContent": true,
+	"IsBetaVersion": true,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "RTSDKComplex3DLocomotionRuntime",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "MassEntity",
+			"Enabled": true
+		},
+		{
+			"Name": "MassGameplay",
+			"Enabled": true
+		},
+		{
+			"Name": "DeterministicMath",
+			"Enabled": true
+		},
+		{
+			"Name": "RTSDK",
+			"Enabled": true
+		},
+		{
+			"Name": "RTSDKMovementCore",
+			"Enabled": true
+		}
+	],
+	"ExplicitlyLoaded": true,
+	"BuiltInInitialFeatureState": "Registered"
+}

@@ -8,6 +8,7 @@
 
 class ULoadingProcessTask;
 class URTSDKLobbySettingRegistry;
+class URTSDKModManager;
 
 /**
  * Manager for the active 'lobby' within RTSDK, a pending or current game session.
@@ -20,6 +21,18 @@ class RTSDK_API URTSDKLobbySubsystem : public UGameInstanceSubsystem
 	
 public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+
+	/**
+	* Sets the initial mods and initializes a new lobby
+	*/
+	UFUNCTION(BlueprintCallable)
+		bool CreateNewLobbyPIE(UWorld* CallerWorld, FString inGameModDevName, const TArray<FString>& inFactionModDevNames, FString inMapModDevName, const TArray<FString>& inMutatorDevNames);
+
+	/**
+	* Sets the initial mods and initializes a new lobby
+	*/
+	UFUNCTION(BlueprintCallable)
+		void DestroyLobbyPIE(UWorld* CallerWorld);
 
 	/**
 	* Sets the initial mods and initializes a new lobby
@@ -81,6 +94,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void LaunchGame();
 
+	bool IsFullyLoaded();
+
 protected:
 	/**
 	* This is the current 'loading process task', if any. 
@@ -95,4 +110,12 @@ protected:
 	*/
 	UPROPERTY()
 		TObjectPtr<URTSDKLobbySettingRegistry> LobbySettingsRegistry;
+
+protected:
+
+	UPROPERTY()
+		TObjectPtr<URTSDKModManager> ModManager;
+
+	UFUNCTION()
+		void OnModsFullyActivated(UWorld* WorldContext, FRTSDKActiveModsInfo inActiveModsInfo);
 };

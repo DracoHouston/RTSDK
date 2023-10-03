@@ -3,13 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameFeatureData.h"
 #include "RTSDKModDefinitionBase.generated.h"
 
 class URTSDKModManager;
 class URTSDKGameFeatureData;
 class URTSDKModDefinitionBase;
+class UWorld;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRTSDKOnModFullyLoaded, URTSDKModDefinitionBase*, Sender);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRTSDKOnModStateChanged, UWorld*, WorldContext, URTSDKModDefinitionBase*, Sender);
 
 UENUM()
 enum class ERTSDKModStates : uint8
@@ -19,10 +21,16 @@ enum class ERTSDKModStates : uint8
 	Registered,//>= Registered implies valid mod
 	Unloading,
 	Loading,
-	Loaded,//>= Loaded implies loaded mod
+	Loaded //ready for use
+};
+
+UENUM()
+enum class ERTSDKWorldModStates : uint8
+{
+	Inactive,
 	Deactivating,
 	Activating,
-	Activated //fully activated mod
+	Activated
 };
 
 USTRUCT(BlueprintType)
@@ -44,18 +52,64 @@ public:
 
 };
 
+USTRUCT(BlueprintType)
+struct RTSDK_API FRTSDKModDependentsArray
+{
+public:
+	GENERATED_BODY()
+
+public:
+
+	UPROPERTY()
+		TArray<UObject*> Dependents;
+
+};
+
 /**
  * Base class for mod defs
  */
 UCLASS()
-class RTSDK_API URTSDKModDefinitionBase : public UObject
+class RTSDK_API URTSDKModDefinitionBase : public UGameFeatureData
 {
 	GENERATED_BODY()
 	
 public:
 
+	/*
+	* User facing display name for this mod.
+	*/
+	UPROPERTY(EditDefaultsOnly)
+		FText DisplayName;
+
+	/*
+	* User facing text for the description of this mod
+	*/
+	UPROPERTY(EditDefaultsOnly)
+		FText DescriptionText;
+
+	/*
+	* User facing text for the name of the author of this mod.
+	*/
+	UPROPERTY(EditDefaultsOnly)
+		FText AuthorName;
+
+	UPROPERTY(EditDefaultsOnly)
+		TArray<TSoftObjectPtr<URTSDKModDefinitionBase>> FeatureDependencies;	
+
+	UPROPERTY(EditDefaultsOnly)
+		TSoftObjectPtr<URTSDKModDefinitionBase> ParentMod;
+//#if !WITH_EDITORONLY_DATA
+	UPROPERTY(transient)
+		TObjectPtr<URTSDKModDefinitionBase> ParentModPtr;
+
+	UPROPERTY(transient)
+		TArray<TObjectPtr<URTSDKModDefinitionBase>> FeatureDependencyPtrs;
+//#endif
+	UPROPERTY(EditDefaultsOnly)
+		bool bIsAbstractMod;
+
 	UFUNCTION()
-		virtual void Init(const URTSDKGameFeatureData* inData);
+		virtual void InitMod(URTSDKModManager* inModManager);
 
 	UFUNCTION()
 		virtual void BuildModDependencies(URTSDKModManager* inModManager);
@@ -64,16 +118,16 @@ public:
 		virtual void BuildMod(URTSDKModManager* inModManager);
 
 	UFUNCTION()
-		virtual void LoadMod(UObject* inCallerObject);
+		virtual void LoadMod(UWorld* inWorldContext, UObject* inCallerObject);
 
 	UFUNCTION()
-		virtual void UnloadMod(UObject* inCallerObject);
+		virtual void UnloadMod(UWorld* inWorldContext, UObject* inCallerObject);
 
 	UFUNCTION()
-		virtual void ActivateMod(UObject* inCallerObject);
+		virtual void ActivateMod(UWorld* inWorldContext, UObject* inCallerObject);
 
 	UFUNCTION()
-		virtual void DeactivateMod(UObject* inCallerObject);
+		virtual void DeactivateMod(UWorld* inWorldContext, UObject* inCallerObject);
 
 	UFUNCTION()
 		virtual bool IsModValid();
@@ -85,10 +139,10 @@ public:
 		virtual bool IsModUnloaded();
 
 	UFUNCTION()
-		virtual bool IsModActivated();
+		virtual bool IsModActivated(UWorld* WorldContext);
 
 	UFUNCTION()
-		virtual bool IsModDeactivated();
+		virtual bool IsModDeactivated(UWorld* WorldContext);
 
 	UFUNCTION()
 		virtual bool IsModAbstract();
@@ -100,46 +154,31 @@ public:
 		virtual TArray<URTSDKModDefinitionBase*> GetModDependencies();
 
 	UFUNCTION()
-		virtual FName GetModType();
+		virtual FName GetModType() const;
 
 	UFUNCTION()
-		void DependencyLoaded(URTSDKModDefinitionBase* Sender);
+		void DependencyLoaded(UWorld* WorldContext, URTSDKModDefinitionBase* Sender);
 
 	UFUNCTION()
-		void DependencyUnloaded(URTSDKModDefinitionBase* Sender);
+		void DependencyUnloaded(UWorld* WorldContext, URTSDKModDefinitionBase* Sender);
+
+	/*UFUNCTION()
+		void DependencyActivated(UWorld* WorldContext, URTSDKModDefinitionBase* Sender);
 
 	UFUNCTION()
-		void DependencyActivated(URTSDKModDefinitionBase* Sender);
-
-	UFUNCTION()
-		void DependencyDeactivated(URTSDKModDefinitionBase* Sender);
-
-	UFUNCTION()
-		void NotifyQueuedActivation();
-
-	UFUNCTION()
-		void NotifyQueuedDeactivation();
+		void DependencyDeactivated(UWorld* WorldContext, URTSDKModDefinitionBase* Sender);*/
 
 	UPROPERTY(BlueprintAssignable)
-		FRTSDKOnModFullyLoaded OnModFullyLoaded;
+		FRTSDKOnModStateChanged OnModFullyLoaded;
 
 	UPROPERTY(BlueprintAssignable)
-		FRTSDKOnModFullyLoaded OnModFullyUnloaded;
+		FRTSDKOnModStateChanged OnModFullyUnloaded;
 
 	UPROPERTY(BlueprintAssignable)
-		FRTSDKOnModFullyLoaded OnModFullyActivated;
+		FRTSDKOnModStateChanged OnModFullyActivated;
 
 	UPROPERTY(BlueprintAssignable)
-		FRTSDKOnModFullyLoaded OnModFullyDeactivated;
-
-	UPROPERTY(transient)
-		FText DisplayName;
-
-	UPROPERTY(transient)
-		FName DevName;
-
-	UPROPERTY(transient)
-		FName ModTypeName;
+		FRTSDKOnModStateChanged OnModFullyDeactivated;
 
 	UPROPERTY(transient)
 		FString GameFeatureName;
@@ -148,22 +187,7 @@ public:
 		FString GameFeatureURL;
 
 	UPROPERTY(transient)
-		TArray<FRTSDKModDependencyInfo> ModDependencyInfos;
-
-	UPROPERTY(transient)
-		FRTSDKModDependencyInfo ParentModInfo;
-
-	UPROPERTY(transient)
-		bool bIsValid;
-
-	UPROPERTY(transient)
-		bool bIsAbstractMod;
-
-	UPROPERTY(transient)
-		bool bIsFullyLoaded;
-
-	UPROPERTY(transient)
-		bool bIsActivated;
+		TMap<UWorld*, ERTSDKWorldModStates> ModWorldStates;
 
 	UPROPERTY(transient)
 		ERTSDKModStates ModState;
@@ -173,14 +197,19 @@ public:
 	* This mod can't enter unloaded/registered state while this has non-zero elements
 	*/
 	UPROPERTY(transient)
-		TArray<UObject*> LoadDependingObjects;
+		TMap<UWorld*, FRTSDKModDependentsArray> LoadDependingObjects;
 
 	/*
 	* This array keeps track of callers for activate and deactivate
 	* This mod can't enter inactive/loaded state while this has non-zero elements
 	*/
 	UPROPERTY(transient)
-		TArray<UObject*> ActivateDependingObjects;
+		TMap<UWorld*, FRTSDKModDependentsArray> ActivateDependingObjects;
+
+	protected:
+
+		/*UFUNCTION()
+			virtual void Internal_ActivateInWorld(UWorld* WorldContext);*/
 };
 
 /**
@@ -193,12 +222,18 @@ class RTSDK_API URTSDKAssociatedModDefinitionBase : public URTSDKModDefinitionBa
 	GENERATED_BODY()
 
 public:
-
-	virtual void Init(const URTSDKGameFeatureData* inData) override;
+	virtual void BuildModDependencies(URTSDKModManager* inModManager) override;
 
 	UFUNCTION()
 		virtual URTSDKModDefinitionBase* GetAssociatedMod();
 
-	UPROPERTY()
-		FRTSDKModDependencyInfo AssociatedModInfo;
+	UFUNCTION()
+		virtual FName GetAllowedAssociatedModType() const;
+
+	UPROPERTY(EditDefaultsOnly)
+		TSoftObjectPtr<URTSDKModDefinitionBase> AssociatedMod;
+//#if !WITH_EDITORONLY_DATA
+	UPROPERTY(transient)
+		TObjectPtr<URTSDKModDefinitionBase> AssociatedModPtr;
+//#endif
 };

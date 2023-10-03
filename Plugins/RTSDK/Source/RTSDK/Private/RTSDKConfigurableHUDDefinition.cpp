@@ -9,7 +9,7 @@
 
 void URTSDKConfigurableHUDDefinition::Init(FName inDevName, const FText& inDisplayName, const FText& inDescriptionText, FName inAssociatedGameModDevName, FName inParentHUDDevName, TSoftClassPtr<UUserWidget> inWidgetClass, TArray<FRTSDKInitialHUDElementSettings> inElements, bool inbIsAbstractHUD)
 {
-	HUDDevName = inDevName;
+	/*HUDDevName = inDevName;
 	HUDDisplayName = inDisplayName;
 	HUDDescriptionText = inDescriptionText;
 	AssociatedGameModDevName = inAssociatedGameModDevName;
@@ -17,12 +17,12 @@ void URTSDKConfigurableHUDDefinition::Init(FName inDevName, const FText& inDispl
 	WidgetClass = inWidgetClass;
 	Elements = inElements;
 	bIsAbstractHUD = inbIsAbstractHUD;
-	bIsValid = false;
+	bIsValid = false;*/
 }
 
 void URTSDKConfigurableHUDDefinition::BuildModDependencies(URTSDKModManager* inModManager)
 {
-	URTSDKGameModDefinition* gamemod = inModManager->GetGameModByName(AssociatedGameModDevName);
+	/*URTSDKGameModDefinition* gamemod = inModManager->GetGameModByName(AssociatedGameModDevName);
 	if (gamemod != nullptr)
 	{
 		AssociatedGameMod = gamemod;
@@ -51,54 +51,54 @@ void URTSDKConfigurableHUDDefinition::BuildModDependencies(URTSDKModManager* inM
 	{
 		bIsValid = true;
 		return;
-	}
+	}*/
 }
 
 void URTSDKConfigurableHUDDefinition::BuildMod(URTSDKModManager* inModManager)
 {
-	if (!bIsValid)
-	{
-		return;
-	}
+	//if (!bIsValid)
+	//{
+	//	return;
+	//}
 
-	TArray<URTSDKConfigurableHUDDefinition*> allparents;
-	URTSDKConfigurableHUDDefinition* currentouter = ParentHUD;
-	while (currentouter != nullptr)
-	{
-		if (!currentouter->bIsValid)
-		{
-			bIsValid = false;//bad parent
-			return;
-		}
-		if (allparents.Contains(currentouter))
-		{
-			bIsValid = false;//circular dependency
-			return;
-		}
-		allparents.Add(currentouter);
-		currentouter = currentouter->ParentHUD;
-	}
-	CombinedElements.Empty(Elements.Num());
-	TArray<FName> elementnames;
-	elementnames.Empty(Elements.Num());
-	for (int32 i = 0; i < Elements.Num(); i++)
-	{
-		if (!elementnames.Contains(Elements[i].ElementName))
-		{
-			elementnames.Add(Elements[i].ElementName);
-			CombinedElements.Add(Elements[i]);
-		}		
-	}
+	//TArray<URTSDKConfigurableHUDDefinition*> allparents;
+	//URTSDKConfigurableHUDDefinition* currentouter = ParentHUD;
+	//while (currentouter != nullptr)
+	//{
+	//	if (!currentouter->bIsValid)
+	//	{
+	//		bIsValid = false;//bad parent
+	//		return;
+	//	}
+	//	if (allparents.Contains(currentouter))
+	//	{
+	//		bIsValid = false;//circular dependency
+	//		return;
+	//	}
+	//	allparents.Add(currentouter);
+	//	currentouter = currentouter->ParentHUD;
+	//}
+	//CombinedElements.Empty(Elements.Num());
+	//TArray<FName> elementnames;
+	//elementnames.Empty(Elements.Num());
+	//for (int32 i = 0; i < Elements.Num(); i++)
+	//{
+	//	if (!elementnames.Contains(Elements[i].ElementName))
+	//	{
+	//		elementnames.Add(Elements[i].ElementName);
+	//		CombinedElements.Add(Elements[i]);
+	//	}		
+	//}
 
-	for (int32 i = 0; i < allparents.Num(); i++)
-	{
-		for (int32 j = 0; j < allparents[i]->Elements.Num(); j++)
-		{
-			if (!elementnames.Contains(allparents[i]->Elements[j].ElementName))
-			{
-				elementnames.Add(allparents[i]->Elements[j].ElementName);
-				CombinedElements.Add(allparents[i]->Elements[j]);
-			}
-		}
-	}
+	//for (int32 i = 0; i < allparents.Num(); i++)
+	//{
+	//	for (int32 j = 0; j < allparents[i]->Elements.Num(); j++)
+	//	{
+	//		if (!elementnames.Contains(allparents[i]->Elements[j].ElementName))
+	//		{
+	//			elementnames.Add(allparents[i]->Elements[j].ElementName);
+	//			CombinedElements.Add(allparents[i]->Elements[j]);
+	//		}
+	//	}
+	//}
 }

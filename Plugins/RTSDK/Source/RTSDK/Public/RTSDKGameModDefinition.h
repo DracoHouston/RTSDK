@@ -32,7 +32,10 @@ class RTSDK_API URTSDKGameModDefinition : public URTSDKModDefinitionBase
 	
 public:
 
+	//virtual void Init(const URTSDKGameFeatureData* inData) override;
 	virtual void BuildMod(URTSDKModManager* inModManager) override;
+
+	virtual FName GetModType() const override;
 
 	UPROPERTY(transient)
 		TArray<URTSDKMapModDefinition*> ValidMapMods;
@@ -40,8 +43,8 @@ public:
 	UPROPERTY(transient)
 		TArray<URTSDKFactionModDefinition*> ValidFactionMods;
 
-	UPROPERTY(transient)
-		TArray<URTSDKConfigurableHUDDefinition*> ValidConfigurableHUDs;
+	/*UPROPERTY(transient)
+		TArray<URTSDKConfigurableHUDDefinition*> ValidConfigurableHUDs;*/
 
 	UPROPERTY(transient)
 		TSubclassOf<UUserWidget> GameMenuWidgetClass;

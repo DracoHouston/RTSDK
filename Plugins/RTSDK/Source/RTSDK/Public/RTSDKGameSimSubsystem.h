@@ -9,6 +9,7 @@
 #include "RTSDKScriptExecutionContext.h"
 #include "RTSDKGameSimSubsystem.generated.h"
 
+class URTSDKLobbySubsystem;
 class UMassSpawnerSubsystem;
 class URTSDKUnitComponent;
 class URTSDKPlayerCommandBase;
@@ -245,8 +246,13 @@ public:
 	}
 
 protected:
+
+	UFUNCTION()
+		virtual void RebuildProcessors();
+
 	bool bSimIsInitialized;
 	bool bLevelUnitsInitialized;
+	bool bSimProcessorsInitialized;
 	bool bSimIsPaused;
 	bool bInScriptCallingMode;
 	int32 FrameCount;
@@ -265,11 +271,17 @@ protected:
 
 	TSharedPtr<FMassEntityManager> EntityManager;
 
+	UPROPERTY(transient)
 	TObjectPtr<UMassSpawnerSubsystem> MassSpawnerSubsystem;
 
-	TObjectPtr<AWorldSettings> WorldSettings;
+	/*UPROPERTY(transient)
+	TObjectPtr<AWorldSettings> WorldSettings;*/
 
+	UPROPERTY(transient)
 	TObjectPtr<ARTSDKSimStateBase> SimState;
+
+	UPROPERTY(transient)
+	TObjectPtr<URTSDKLobbySubsystem> LobbySubsystem;
 
 	int32 CurrentInputTurn;
 	int32 LastLockstepTurnFrame;

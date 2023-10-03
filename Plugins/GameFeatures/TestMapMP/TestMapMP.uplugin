@@ -16,5 +16,19 @@
 	"IsExperimentalVersion": false,
 	"Installed": false,
 	"ExplicitlyLoaded": true,
-	"BuiltInInitialFeatureState": "Registered"
+	"BuiltInInitialFeatureState": "Registered",
+	"Plugins": [
+		{
+			"Name": "TestGameBase",
+			"Enabled": true
+		},
+		{
+			"Name": "TestGameMP",
+			"Enabled": true
+		},
+		{
+			"Name": "TestMapBase",
+			"Enabled": true
+		}
+	]
 }

@@ -8,49 +8,25 @@
 TArray<FString> ARTSDKWorldSettings::GetGameModNames()
 {
     URTSDKModManager* modmanager = GEngine->GetEngineSubsystem<URTSDKModManager>();
-    TArray<FName> names = modmanager->GetAllValidGameModNames();
-    TArray<FString> retval;
-    for (int32 i = 0; i < names.Num(); i++)
-    {
-        retval.Add(names[i].ToString());
-    }
-    return retval;
+    return modmanager->GetAllValidGameModNames();
 }
 
 TArray<FString> ARTSDKWorldSettings::GetMapModNames()
 {
     URTSDKModManager* modmanager = GEngine->GetEngineSubsystem<URTSDKModManager>();
-    TArray<FName> names = modmanager->GetAllValidMapModNames();
-    TArray<FString> retval;
-    for (int32 i = 0; i < names.Num(); i++)
-    {
-        retval.Add(names[i].ToString());
-    }
-    return retval;
+    return modmanager->GetAllValidMapModNames();
 }
 
 TArray<FString> ARTSDKWorldSettings::GetFactionModNames()
 {
     URTSDKModManager* modmanager = GEngine->GetEngineSubsystem<URTSDKModManager>();
-    TArray<FName> names = modmanager->GetAllValidFactionModNames();
-    TArray<FString> retval;
-    for (int32 i = 0; i < names.Num(); i++)
-    {
-        retval.Add(names[i].ToString());
-    }
-    return retval;
+    return modmanager->GetAllValidFactionModNames();
 }
 
 TArray<FString> ARTSDKWorldSettings::GetMutatorNames()
 {
     URTSDKModManager* modmanager = GEngine->GetEngineSubsystem<URTSDKModManager>();
-    TArray<FName> names = modmanager->GetAllValidMutatorNames();
-    TArray<FString> retval;
-    for (int32 i = 0; i < names.Num(); i++)
-    {
-        retval.Add(names[i].ToString());
-    }
-    return retval;
+    return modmanager->GetAllValidMutatorNames();
 }
 #endif //WITH_EDITORONLY_DATA
 

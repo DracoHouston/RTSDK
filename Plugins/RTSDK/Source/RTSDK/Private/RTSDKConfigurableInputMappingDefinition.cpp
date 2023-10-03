@@ -8,17 +8,17 @@
 
 void URTSDKConfigurableInputMappingDefinition::Init(FName inDevName, const FText& inDisplayName, const FText& inDescriptionText, FName inAssociatedGameModDevName, TSoftObjectPtr<UInputMappingContext> inMappingContextAsset)
 {
-	MappingDevName = inDevName;
+	/*MappingDevName = inDevName;
 	MappingDisplayName = inDisplayName;
 	MappingDescriptionText = inDescriptionText;
 	AssociatedGameModDevName = inAssociatedGameModDevName;
 	MappingContextAsset = inMappingContextAsset;
-	bIsValid = false;
+	bIsValid = false;*/
 }
 
 void URTSDKConfigurableInputMappingDefinition::BuildModDependencies(URTSDKModManager* inModManager)
 {
-	URTSDKGameModDefinition* gamemod = inModManager->GetGameModByName(AssociatedGameModDevName);
+	/*URTSDKGameModDefinition* gamemod = inModManager->GetGameModByName(AssociatedGameModDevName);
 	if (gamemod != nullptr)
 	{
 		AssociatedGameMod = gamemod;
@@ -29,12 +29,12 @@ void URTSDKConfigurableInputMappingDefinition::BuildModDependencies(URTSDKModMan
 	{
 		bIsValid = false;
 		return;
-	}
+	}*/
 }
 
 void URTSDKConfigurableInputMappingDefinition::BuildMod(URTSDKModManager* inModManager)
 {
-	if (!bIsValid)
+	/*if (!bIsValid)
 	{
 		return;
 	}
@@ -46,5 +46,5 @@ void URTSDKConfigurableInputMappingDefinition::BuildMod(URTSDKModManager* inModM
 	{
 		bIsValid = false;
 		return;
-	}
+	}*/
 }
