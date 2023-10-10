@@ -4,12 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "GameFeatureData.h"
+#include "RTSDKDataEditorTreeNodeInterface.h"
 #include "RTSDKModDefinitionBase.generated.h"
 
 class URTSDKModManager;
 class URTSDKGameFeatureData;
 class URTSDKModDefinitionBase;
 class UWorld;
+class URTSDKModTraitsCollection;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRTSDKOnModStateChanged, UWorld*, WorldContext, URTSDKModDefinitionBase*, Sender);
 
@@ -69,17 +71,26 @@ public:
  * Base class for mod defs
  */
 UCLASS()
-class RTSDK_API URTSDKModDefinitionBase : public UGameFeatureData
+class RTSDK_API URTSDKModDefinitionBase : public UGameFeatureData, public IRTSDKDataEditorTreeNodeInterface
 {
 	GENERATED_BODY()
 	
 public:
+
+	//IRTSDKDataEditorTreeNodeInterface
+	virtual FText GetDisplayNameForDataEditorTree() override;
+	virtual UMaterialInterface* GetSmallIconForDataEditorTree() override;
+	virtual TArray<IRTSDKDataEditorTreeNodeInterface*> GetChildNodeObjectsForDataEditorTree() override;
+	//~IRTSDKDataEditorTreeNodeInterface
 
 	/*
 	* User facing display name for this mod.
 	*/
 	UPROPERTY(EditDefaultsOnly)
 		FText DisplayName;
+
+	UPROPERTY(EditDefaultsOnly)
+		TSoftObjectPtr<UMaterialInterface> SmallIcon;
 
 	/*
 	* User facing text for the description of this mod
@@ -107,6 +118,12 @@ public:
 //#endif
 	UPROPERTY(EditDefaultsOnly)
 		bool bIsAbstractMod;
+
+	UPROPERTY(Category = "Traits", EditAnywhere, Instanced)
+		TArray<TObjectPtr<URTSDKModTraitsCollection>> ModTraits;
+	
+	UPROPERTY(transient)
+		TObjectPtr<URTSDKModTraitsCollection> RootModTraitCollection;
 
 	UFUNCTION()
 		virtual void InitMod(URTSDKModManager* inModManager);
@@ -206,6 +223,9 @@ public:
 	UPROPERTY(transient)
 		TMap<UWorld*, FRTSDKModDependentsArray> ActivateDependingObjects;
 
+	/*UPROPERTY(transient)
+		TArray<TObjectPtr<IRTSDKDataEditorTreeNodeInterface>> DataEditorTreeChildren;*/
+
 	protected:
 
 		/*UFUNCTION()
@@ -217,7 +237,25 @@ public:
  * child classes are responsible for setting the associated mod's type to search for during their Init override
  */
 UCLASS()
-class RTSDK_API URTSDKAssociatedModDefinitionBase : public URTSDKModDefinitionBase
+class RTSDK_API URTSDKUnitProvidingModDefinitionBase : public URTSDKModDefinitionBase
+{
+	GENERATED_BODY()
+
+public:
+	virtual TArray<FPrimaryAssetId> GetUnitAssetsToLoad() const;
+
+	virtual TArray<IRTSDKDataEditorTreeNodeInterface*> GetChildNodeObjectsForDataEditorTree() override;
+
+	UPROPERTY(EditDefaultsOnly)
+		TArray<FPrimaryAssetId> UnitDefinitions;
+};
+
+/**
+ * Base class for mod defs that have association with a mod
+ * child classes are responsible for setting the associated mod's type to search for during their Init override
+ */
+UCLASS()
+class RTSDK_API URTSDKAssociatedModDefinitionBase : public URTSDKUnitProvidingModDefinitionBase
 {
 	GENERATED_BODY()
 

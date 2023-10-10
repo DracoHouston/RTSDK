@@ -26,11 +26,13 @@ class URTSDKConfigurableHUDDefinition;
  * Populates the Mod Manager list of Game Mods.
  */
 UCLASS()
-class RTSDK_API URTSDKGameModDefinition : public URTSDKModDefinitionBase
+class RTSDK_API URTSDKGameModDefinition : public URTSDKUnitProvidingModDefinitionBase
 {
 	GENERATED_BODY()
 	
 public:
+
+	virtual TArray<IRTSDKDataEditorTreeNodeInterface*> GetChildNodeObjectsForDataEditorTree() override;
 
 	//virtual void Init(const URTSDKGameFeatureData* inData) override;
 	virtual void BuildMod(URTSDKModManager* inModManager) override;

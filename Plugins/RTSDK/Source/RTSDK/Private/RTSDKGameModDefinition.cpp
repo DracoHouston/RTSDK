@@ -55,13 +55,44 @@
 //	Super::Init(inData);
 //}
 
+TArray<IRTSDKDataEditorTreeNodeInterface*> URTSDKGameModDefinition::GetChildNodeObjectsForDataEditorTree()
+{
+	TArray<IRTSDKDataEditorTreeNodeInterface*> childnodes;
+	for (int32 i = 0; i < ValidMapMods.Num(); i++)
+	{
+		IRTSDKDataEditorTreeNodeInterface* child = Cast<IRTSDKDataEditorTreeNodeInterface>(ValidMapMods[i]);
+		if (child != nullptr)
+		{
+			childnodes.Add(child);
+		}
+	}
+	for (int32 i = 0; i < ValidFactionMods.Num(); i++)
+	{
+		IRTSDKDataEditorTreeNodeInterface* child = Cast<IRTSDKDataEditorTreeNodeInterface>(ValidFactionMods[i]);
+		if (child != nullptr)
+		{
+			childnodes.Add(child);
+		}
+	}
+
+	childnodes += Super::GetChildNodeObjectsForDataEditorTree();
+
+	return childnodes;
+}
+
 void URTSDKGameModDefinition::BuildMod(URTSDKModManager* inModManager)
 {
 	Super::BuildMod(inModManager);
-	//if (!bIsValid)
-	//{
-	//	return;
-	//}
+	if (ModState == ERTSDKModStates::Invalid)
+	{
+		return;
+	}
+
+	ValidMapMods.Empty();
+	ValidFactionMods.Empty();
+	ValidMapMods += inModManager->GetMapModsByGameMod(this);
+	ValidFactionMods += inModManager->GetFactionModsByGameMod(this);
+
 	//	
 	//TArray<URTSDKGameModDefinition*> allparents;
 	//URTSDKGameModDefinition* currentouter = ParentGameMod;

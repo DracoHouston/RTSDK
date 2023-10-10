@@ -9,3 +9,9 @@ void URTSDKGameFeaturePolicy::InitGameFeatureManager()
 	URTSDKModManager* modmanager = GEngine->GetEngineSubsystem<URTSDKModManager>();
 	modmanager->BuildMods();
 }
+
+TArray<FPrimaryAssetId> URTSDKGameFeaturePolicy::GetPreloadAssetListForGameFeature(const UGameFeatureData* GameFeatureToLoad, bool bIncludeLoadedAssets) const
+{
+	//todo load on each unit
+	return TArray<FPrimaryAssetId>();
+}

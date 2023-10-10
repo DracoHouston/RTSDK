@@ -17,5 +17,6 @@ class RTSDK_API URTSDKGameFeaturePolicy : public UDefaultGameFeaturesProjectPoli
 public:
 	//UGameFeaturesProjectPolicies
 	virtual void InitGameFeatureManager() override;
+	virtual TArray<FPrimaryAssetId> GetPreloadAssetListForGameFeature(const UGameFeatureData* GameFeatureToLoad, bool bIncludeLoadedAssets = false) const override;
 	//~UGameFeaturesProjectPolicies
 };

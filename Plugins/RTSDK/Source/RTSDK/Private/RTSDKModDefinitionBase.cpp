@@ -6,6 +6,34 @@
 #include "RTSDKModManager.h"
 #include "RTSDKFeatureActionBase.h"
 #include "GameFeaturesSubsystem.h"
+#include "RTSDKUnitTypes.h"
+
+#define LOCTEXT_NAMESPACE "RTSDK"
+
+FText URTSDKModDefinitionBase::GetDisplayNameForDataEditorTree()
+{
+	return DisplayName;
+}
+
+UMaterialInterface* URTSDKModDefinitionBase::GetSmallIconForDataEditorTree()
+{
+	if (SmallIcon.IsValid())
+	{
+		return SmallIcon.LoadSynchronous();
+	}
+	return nullptr;
+}
+
+TArray<IRTSDKDataEditorTreeNodeInterface*> URTSDKModDefinitionBase::GetChildNodeObjectsForDataEditorTree()
+{
+	TArray<IRTSDKDataEditorTreeNodeInterface*> childnodes;
+	IRTSDKDataEditorTreeNodeInterface* child = Cast<IRTSDKDataEditorTreeNodeInterface>(RootModTraitCollection.Get());
+	if (child != nullptr)
+	{
+		childnodes.Add(child);
+	}
+	return childnodes;
+}
 
 void URTSDKModDefinitionBase::InitMod(URTSDKModManager* inModManager)
 {
@@ -13,6 +41,10 @@ void URTSDKModDefinitionBase::InitMod(URTSDKModManager* inModManager)
 	GameFeatureName = GetName();
 	UGameFeaturesSubsystem& gamefeatures = UGameFeaturesSubsystem::Get();
 	FString featureurl;
+	RootModTraitCollection = NewObject<URTSDKModTraitsCollection>();
+	RootModTraitCollection->ChildCollections = ModTraits;
+	RootModTraitCollection->DevName = FName(TEXT("Root"));
+	RootModTraitCollection->DisplayName = LOCTEXT("DataEditorRootModTraitsCategoryName", "Mod Traits");
 	if (gamefeatures.GetPluginURLByName(GameFeatureName, featureurl))
 	{
 		GameFeatureURL = featureurl;
@@ -656,3 +688,16 @@ FName URTSDKAssociatedModDefinitionBase::GetAllowedAssociatedModType() const
 {
 	return FName();
 }
+
+TArray<FPrimaryAssetId> URTSDKUnitProvidingModDefinitionBase::GetUnitAssetsToLoad() const
+{
+	return UnitDefinitions;
+}
+
+TArray<IRTSDKDataEditorTreeNodeInterface*> URTSDKUnitProvidingModDefinitionBase::GetChildNodeObjectsForDataEditorTree()
+{
+	return Super::GetChildNodeObjectsForDataEditorTree();
+}
+
+
+#undef LOCTEXT_NAMESPACE

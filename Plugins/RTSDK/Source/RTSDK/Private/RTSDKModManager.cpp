@@ -507,7 +507,7 @@ void URTSDKModManager::DeactivateMods(UWorld* Caller)
 	worldactivemods = FRTSDKActiveModsInfo();
 }
 
-TArray<URTSDKGameModDefinition*> URTSDKModManager::GetAllValidGameMods()
+TArray<URTSDKGameModDefinition*> URTSDKModManager::GetAllValidGameMods(bool bIncludeAbstract)
 {
 	TArray<URTSDKGameModDefinition*> retval;
 	const FRTSDKRegisteredModsMap* mods = RegisteredModsByType.Find(RTSDKModTypeNames::Game); 
@@ -520,7 +520,7 @@ TArray<URTSDKGameModDefinition*> URTSDKModManager::GetAllValidGameMods()
 		URTSDKGameModDefinition* def = Cast<URTSDKGameModDefinition>(It->Value);
 		if (def != nullptr)
 		{
-			if ((def->IsModValid()) && (!def->IsModAbstract())) 
+			if ((def->IsModValid()) && (!def->IsModAbstract() || bIncludeAbstract))
 			{
 				retval.Add(def);
 			}

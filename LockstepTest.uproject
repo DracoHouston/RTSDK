@@ -63,6 +63,10 @@
 			"Enabled": true
 		},
 		{
+			"Name": "RTSDKDataEditorTool",
+			"Enabled": true
+		},
+		{
 			"Name": "RTSDKMovementCore",
 			"Enabled": true
 		},

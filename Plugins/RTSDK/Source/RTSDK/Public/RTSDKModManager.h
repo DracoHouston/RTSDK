@@ -250,7 +250,7 @@ public:
 		void DeactivateMods(UWorld* Caller);
 
 	UFUNCTION()
-		TArray<URTSDKGameModDefinition*> GetAllValidGameMods();
+		TArray<URTSDKGameModDefinition*> GetAllValidGameMods(bool bIncludeAbstract = false);
 
 	UFUNCTION()
 		TArray<FString> GetAllValidGameModNames();
